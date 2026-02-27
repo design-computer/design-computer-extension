@@ -1,6 +1,6 @@
 export default defineContentScript({
-  matches: ['*://*.google.com/*'],
+  matches: ['*://chatgpt.com/c/*'],
   main() {
-    console.log('Hello content.');
+    console.log('[design.computer] content script active on ChatGPT');
   },
 });
