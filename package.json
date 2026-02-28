@@ -14,7 +14,8 @@
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare",
     "e2e": "wxt build && playwright test",
-    "e2e:headed": "wxt build && playwright test --headed"
+    "e2e:headed": "wxt build && playwright test --headed",
+    "e2e:login": "wxt build && node scripts/login-session.mjs"
   },
   "dependencies": {
     "react": "^19.2.4",

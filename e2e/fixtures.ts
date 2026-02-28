@@ -5,6 +5,9 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const extensionPath = path.resolve(__dirname, '../.output/chrome-mv3')
+// Persistent profile so ChatGPT (and other AI sites) stay logged in across runs.
+// Run `npm run e2e:login` once to open a browser, log in, then close it.
+const sessionDir = path.resolve(__dirname, '../.playwright-session')
 
 interface ExtensionFixtures {
   context: BrowserContext
@@ -14,7 +17,7 @@ interface ExtensionFixtures {
 export const test = base.extend<ExtensionFixtures>({
   // eslint-disable-next-line no-empty-pattern
   context: async ({}, use) => {
-    const context = await chromium.launchPersistentContext('', {
+    const context = await chromium.launchPersistentContext(sessionDir, {
       headless: false,
       args: [
         `--disable-extensions-except=${extensionPath}`,
