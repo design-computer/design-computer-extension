@@ -4,6 +4,7 @@ import { test, expect } from './fixtures'
 // Run `npm run e2e:login` first if you haven't already.
 test.describe('code block detection — real ChatGPT', () => {
   test('detects code block from a real ChatGPT response', async ({ context }) => {
+    test.setTimeout(90_000)
     const page = await context.newPage()
 
     const detectionLogs: string[] = []
