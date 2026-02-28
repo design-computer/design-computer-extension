@@ -34,14 +34,23 @@ test.describe('code block detection — real ChatGPT', () => {
     // on pushState navigations. Hard-reload the /c/* URL to force content script injection.
     await page.goto(page.url(), { waitUntil: 'domcontentloaded' })
 
-    // Now wait for the code block to be rendered (chat is persisted, loads from server)
+    // Wait for the code block to appear
     await page.waitForSelector('pre[data-start]', { timeout: 30_000 })
 
-    // Give the MutationObserver a moment to fire
-    await page.waitForTimeout(500)
+    // Wait for streaming to fully finish — our content script holds pending blocks
+    // until the stop button disappears. The reload may land mid-stream.
+    await page.waitForFunction(
+      () => !document.querySelector('[aria-label="Stop streaming"]'),
+      { timeout: 30_000 }
+    )
+    await page.waitForTimeout(300)
 
     const detected = detectionLogs.some(l => l.includes('code block detected'))
     expect(detected, `Expected detection log. Got: ${JSON.stringify(detectionLogs)}`).toBe(true)
+
+    // Print what was captured so we can verify the full content
+    const detectionLog = detectionLogs.find(l => l.includes('code block detected'))
+    console.log('Captured:', detectionLog)
 
     // Verify the extracted text is actual JS code (not "JavaScriptconsole.log...")
     const codeText = await page.$eval(

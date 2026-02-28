@@ -22,3 +22,7 @@ dist/
 
 # Playwright persistent session (contains auth cookies — never commit)
 .playwright-session/
+
+# Playwright test artifacts
+test-results/
+playwright-report/
