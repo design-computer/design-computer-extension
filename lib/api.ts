@@ -7,7 +7,7 @@ export interface PublishResponse {
   url: string
 }
 
-export async function publish(html: string): Promise<PublishResponse> {
+export async function publish(html: string, chatId?: string): Promise<PublishResponse> {
   const token = await localExtStorage.getItem<string>('authToken')
 
   const res = await fetch(`${WORKER_URL}/publish`, {
@@ -16,7 +16,7 @@ export async function publish(html: string): Promise<PublishResponse> {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ html }),
+    body: JSON.stringify({ html, ...(chatId ? { chatId } : {}) }),
   })
 
   if (!res.ok) {

@@ -3,6 +3,7 @@ import { defineExtensionMessaging } from '@webext-core/messaging'
 export interface PublishData {
   code: string
   language?: string
+  chatId?: string
 }
 
 export interface PublishResult {
