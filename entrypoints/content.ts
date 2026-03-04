@@ -1,7 +1,8 @@
+import { localExtStorage } from '@webext-core/storage'
 import { sendMessage } from '../lib/messaging'
 
 export default defineContentScript({
-  matches: ['*://chatgpt.com/c/*'],
+  matches: ['*://chatgpt.com/*'],
   async main(ctx) {
     console.log('[design.computer] content script active on ChatGPT')
 
@@ -35,12 +36,15 @@ export default defineContentScript({
       flushPending()
     }
 
-    function injectButton(block: Element) {
+    async function injectButton(block: Element) {
       if (block.querySelector('.dc-publish-btn')) return
+
+      const chatId = location.pathname.match(/\/c\/([^/]+)/)?.[1]
+      const hasExisting = chatId ? !!(await localExtStorage.getItem<string>(`slug:${chatId}`)) : false
 
       const btn = document.createElement('button')
       btn.className = 'dc-publish-btn'
-      btn.textContent = 'Publish'
+      btn.textContent = hasExisting ? 'Update' : 'Publish'
       Object.assign(btn.style, {
         position: 'absolute',
         top: '8px',
@@ -61,13 +65,13 @@ export default defineContentScript({
       btn.addEventListener('click', async () => {
         if ((btn as HTMLButtonElement).disabled) return
         ;(btn as HTMLButtonElement).disabled = true
-        btn.textContent = 'Publishing…'
+        btn.textContent = hasExisting ? 'Updating…' : 'Publishing…'
 
         const code = block.querySelector('.cm-content')?.textContent ?? ''
         const language = detectLanguage(block)
 
         try {
-          const { url } = await sendMessage('publish', { code, language })
+          const { url } = await sendMessage('publish', { code, language, chatId })
           await navigator.clipboard.writeText(url)
           btn.textContent = '✅ Copied!'
           console.log('[design.computer] published:', url)
