@@ -8,6 +8,7 @@ export default defineConfig({
     plugins: [tailwindcss()],
   } as WxtViteConfig),
   manifest: {
+    name: 'Get Design',
     permissions: ['storage'],
     host_permissions: ['https://api.curiosive.com/*'],
   },
