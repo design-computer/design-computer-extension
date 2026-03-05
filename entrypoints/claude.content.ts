@@ -27,10 +27,11 @@ export default defineContentScript({
       seen.add(panel)
 
       const chatId = getChatId()
+      const hasExisting = chatId ? (await sendMessage('checkStatus', { chatId })).exists : false
 
       const { parentElement, button: btn } = await createPublishButton({
         colorClass: 'bg-amber-600',
-        label: 'Publish',
+        label: hasExisting ? 'Update' : 'Publish',
       })
 
       btn.addEventListener('click', async () => {

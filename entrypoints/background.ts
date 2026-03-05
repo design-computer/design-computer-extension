@@ -1,6 +1,6 @@
 import { transform } from 'sucrase'
 import { onMessage } from '../lib/messaging'
-import { publish } from '../lib/api'
+import { publish, checkStatus } from '../lib/api'
 
 export default defineBackground(() => {
   console.log('[design.computer] background active', { id: browser.runtime.id })
@@ -8,6 +8,10 @@ export default defineBackground(() => {
   onMessage('publish', async ({ data }) => {
     const html = codeToHtml(data.code, data.language)
     return publish(html, data.chatId)
+  })
+
+  onMessage('checkStatus', async ({ data }) => {
+    return checkStatus(data.chatId)
   })
 })
 

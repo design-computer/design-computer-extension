@@ -1,4 +1,3 @@
-import { localExtStorage } from "@webext-core/storage";
 import { sendMessage } from "../lib/messaging";
 import { createPublishButton } from "../lib/publishButton";
 
@@ -48,7 +47,7 @@ export default defineContentScript({
 
       const chatId = getChatId();
       const hasExisting = chatId
-        ? !!(await localExtStorage.getItem<string>(`slug:${chatId}`))
+        ? (await sendMessage("checkStatus", { chatId })).exists
         : false;
 
       const { parentElement, button: btn } = await createPublishButton({

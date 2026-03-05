@@ -1,4 +1,3 @@
-import { localExtStorage } from '@webext-core/storage'
 import { sendMessage } from '../lib/messaging'
 import { createPublishButton } from '../lib/publishButton'
 
@@ -41,7 +40,7 @@ export default defineContentScript({
       if (block.querySelector('dc-publish-btn')) return
 
       const chatId = location.pathname.match(/\/c\/([^/]+)/)?.[1]
-      const hasExisting = chatId ? !!(await localExtStorage.getItem<string>(`slug:${chatId}`)) : false
+      const hasExisting = chatId ? (await sendMessage('checkStatus', { chatId })).exists : false
 
       ;(block as HTMLElement).style.position = 'relative'
 
