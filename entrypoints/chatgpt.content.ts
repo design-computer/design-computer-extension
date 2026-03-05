@@ -46,7 +46,7 @@ export default defineContentScript({
       ;(block as HTMLElement).style.position = 'relative'
 
       const { parentElement, button: btn } = await createPublishButton({
-        accentColor: '#10a37f',
+        colorClass: 'bg-[#10a37f]',
         label: hasExisting ? 'Update' : 'Publish',
         outerStyles: {
           position: 'absolute',
