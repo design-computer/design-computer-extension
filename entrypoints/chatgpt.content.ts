@@ -15,13 +15,15 @@ export default defineContentScript({
       return !!document.querySelector('[aria-label="Stop streaming"]')
     }
 
-    function flushPending() {
+    async function flushPending() {
       if (pending.size === 0 || isStreaming()) return
+      const chatId = location.pathname.match(/\/c\/([^/]+)/)?.[1]
+      const hasExisting = chatId ? (await sendMessage('checkStatus', { chatId })).exists : false
       pending.forEach(block => {
         seen.add(block)
         const text = block.querySelector('.cm-content')?.textContent ?? block.textContent
         console.log('[design.computer] code block detected', text?.slice(0, 80))
-        injectButton(block)
+        injectButton(block, hasExisting)
       })
       pending.clear()
     }
@@ -36,12 +38,10 @@ export default defineContentScript({
       flushPending()
     }
 
-    async function injectButton(block: Element) {
+    async function injectButton(block: Element, hasExisting: boolean) {
       if (block.querySelector('dc-publish-btn')) return
 
       const chatId = location.pathname.match(/\/c\/([^/]+)/)?.[1]
-      const hasExisting = chatId ? (await sendMessage('checkStatus', { chatId })).exists : false
-
       ;(block as HTMLElement).style.position = 'relative'
 
       const { parentElement, button: btn } = await createPublishButton({
