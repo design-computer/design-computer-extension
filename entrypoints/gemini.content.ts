@@ -38,7 +38,7 @@ export default defineContentScript({
       return "plaintext";
     }
 
-    async function injectButton(codeEl: Element, hasExisting: boolean) {
+    async function injectButton(codeEl: Element) {
       // Walk up to the .code-block container
       const container = codeEl.closest(".code-block");
       if (!container) return;
@@ -46,6 +46,9 @@ export default defineContentScript({
       seen.add(container);
 
       const chatId = getChatId();
+      const hasExisting = chatId
+        ? (await sendMessage("checkStatus", { chatId })).exists
+        : false;
 
       const { parentElement, button: btn } = await createPublishButton({
         colorClass: "bg-[#1a73e8]",
@@ -87,16 +90,12 @@ export default defineContentScript({
       }
     }
 
-    async function detectCodeBlocks() {
+    function detectCodeBlocks() {
       if (isStreaming()) return;
-      const chatId = getChatId();
-      const hasExisting = chatId
-        ? (await sendMessage("checkStatus", { chatId })).exists
-        : false;
       document
         .querySelectorAll('code[data-test-id="code-content"]')
         .forEach((el) => {
-          injectButton(el, hasExisting);
+          injectButton(el);
         });
     }
 
