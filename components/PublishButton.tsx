@@ -22,8 +22,13 @@ export function PublishButton({ chatId, hasExisting, colorClass, getCode, getLan
       const code = await getCode()
       const language = getLanguage()
       const { url } = await sendMessage('publish', { code, language, chatId })
-      await navigator.clipboard.writeText(url)
-      setLabel('Copied!')
+      try {
+        await navigator.clipboard.writeText(url)
+        setLabel('Copied!')
+      } catch {
+        setLabel('Published!')
+      }
+      console.log('[design.computer] published:', url)
     } catch (err) {
       setLabel('Error')
       setDisabled(false)
