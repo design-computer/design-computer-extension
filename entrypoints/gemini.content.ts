@@ -52,7 +52,7 @@ export default defineContentScript({
         : false;
 
       const { parentElement, button: btn } = await createPublishButton({
-        accentColor: "#1a73e8",
+        colorClass: "bg-[#1a73e8]",
         label: hasExisting ? "Update" : "Publish",
       });
 

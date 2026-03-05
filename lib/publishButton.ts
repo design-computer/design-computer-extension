@@ -1,8 +1,10 @@
 import { createIsolatedElement } from '@webext-core/isolated-element'
+import styles from './publish-button.css?inline'
 
 export interface PublishButtonConfig {
-  accentColor: string
   label?: string
+  /** Tailwind bg color class, e.g. 'bg-emerald-600' or 'bg-[#10a37f]' */
+  colorClass: string
   /** Styles applied to the outer host element (e.g. for absolute positioning) */
   outerStyles?: Partial<CSSStyleDeclaration>
 }
@@ -11,32 +13,11 @@ export async function createPublishButton(config: PublishButtonConfig): Promise<
   parentElement: HTMLElement
   button: HTMLButtonElement
 }> {
-  const { accentColor, label = 'Publish', outerStyles } = config
+  const { label = 'Publish', colorClass, outerStyles } = config
 
   const { parentElement, isolatedElement } = await createIsolatedElement({
     name: 'dc-publish-btn',
-    css: {
-      textContent: `
-        button {
-          padding: 4px 10px;
-          height: 32px;
-          background: ${accentColor};
-          color: #fff;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: 12px;
-          font-family: sans-serif;
-          font-weight: 600;
-          flex-shrink: 0;
-          line-height: 1;
-        }
-        button:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-      `,
-    },
+    css: { textContent: styles },
     isolateEvents: true,
   })
 
@@ -45,6 +26,20 @@ export async function createPublishButton(config: PublishButtonConfig): Promise<
   }
 
   const btn = document.createElement('button') as HTMLButtonElement
+  btn.className = [
+    colorClass,
+    'text-white',
+    'text-xs',
+    'font-semibold',
+    'px-3',
+    'h-8',
+    'rounded-md',
+    'cursor-pointer',
+    'border-0',
+    'shrink-0',
+    'disabled:opacity-70',
+    'disabled:cursor-not-allowed',
+  ].join(' ')
   btn.textContent = label
   isolatedElement.appendChild(btn)
 

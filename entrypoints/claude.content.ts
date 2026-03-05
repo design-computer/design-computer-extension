@@ -29,7 +29,7 @@ export default defineContentScript({
       const chatId = getChatId()
 
       const { parentElement, button: btn } = await createPublishButton({
-        accentColor: '#d97706',
+        colorClass: 'bg-amber-600',
         label: 'Publish',
       })
 
