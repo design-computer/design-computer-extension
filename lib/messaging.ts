@@ -10,6 +10,15 @@ export interface PublishResult {
   url: string
 }
 
+export interface CheckStatusData {
+  chatId: string
+}
+
+export interface CheckStatusResult {
+  exists: boolean
+}
+
 export const { sendMessage, onMessage } = defineExtensionMessaging<{
   publish(data: PublishData): PublishResult
+  checkStatus(data: CheckStatusData): CheckStatusResult
 }>()
