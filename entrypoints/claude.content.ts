@@ -22,11 +22,12 @@ export default defineContentScript({
         .filter((el): el is Element => el !== null)
     }
 
-    async function injectButton(panel: Element, hasExisting: boolean) {
+    async function injectButton(panel: Element) {
       if (seen.has(panel)) return
       seen.add(panel)
 
       const chatId = getChatId()
+      const hasExisting = chatId ? (await sendMessage('checkStatus', { chatId })).exists : false
 
       const { parentElement, button: btn } = await createPublishButton({
         colorClass: 'bg-amber-600',
@@ -106,11 +107,9 @@ export default defineContentScript({
       return 'plaintext'
     }
 
-    async function detectArtifacts() {
+    function detectArtifacts() {
       if (isStreaming()) return
-      const chatId = getChatId()
-      const hasExisting = chatId ? (await sendMessage('checkStatus', { chatId })).exists : false
-      getArtifactPanels().forEach(panel => injectButton(panel, hasExisting))
+      getArtifactPanels().forEach(panel => injectButton(panel))
     }
 
     detectArtifacts()
