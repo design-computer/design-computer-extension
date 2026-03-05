@@ -9,6 +9,29 @@ export interface PublishButtonProps {
   getLanguage: () => string
 }
 
+async function copyToClipboard(text: string): Promise<boolean> {
+  // Try modern clipboard API first
+  try {
+    await navigator.clipboard.writeText(text)
+    return true
+  } catch { /* may fail in shadow DOM due to focus/gesture restrictions */ }
+
+  // Fallback: create a temporary textarea in the host document
+  try {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    const ok = document.execCommand('copy')
+    document.body.removeChild(textarea)
+    if (ok) return true
+  } catch { /* execCommand may also be restricted */ }
+
+  return false
+}
+
 export function PublishButton({ chatId, hasExisting, colorClass, getCode, getLanguage }: PublishButtonProps) {
   const [label, setLabel] = useState(hasExisting ? 'Update' : 'Publish')
   const [disabled, setDisabled] = useState(false)
@@ -22,12 +45,8 @@ export function PublishButton({ chatId, hasExisting, colorClass, getCode, getLan
       const code = await getCode()
       const language = getLanguage()
       const { url } = await sendMessage('publish', { code, language, chatId })
-      try {
-        await navigator.clipboard.writeText(url)
-        setLabel('Copied!')
-      } catch {
-        setLabel('Published!')
-      }
+      const copied = await copyToClipboard(url)
+      setLabel(copied ? 'Copied!' : 'Published!')
       console.log('[design.computer] published:', url)
     } catch (err) {
       setLabel('Error')
