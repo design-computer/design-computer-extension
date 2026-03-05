@@ -1,5 +1,6 @@
 import { localExtStorage } from "@webext-core/storage";
 import { sendMessage } from "../lib/messaging";
+import { createPublishButton } from "../lib/publishButton";
 
 const appPattern = new MatchPattern("*://gemini.google.com/app/*");
 
@@ -50,24 +51,14 @@ export default defineContentScript({
         ? !!(await localExtStorage.getItem<string>(`slug:${chatId}`))
         : false;
 
-      const btn = document.createElement("button");
-      btn.className = "dc-publish-btn";
-      btn.textContent = hasExisting ? "Update" : "Publish";
-      Object.assign(btn.style, {
-        padding: "4px 10px",
-        background: "#1a73e8",
-        color: "#fff",
-        border: "none",
-        borderRadius: "4px",
-        cursor: "pointer",
-        fontSize: "12px",
-        fontFamily: "sans-serif",
-        fontWeight: "500",
+      const { parentElement, button: btn } = await createPublishButton({
+        accentColor: "#1a73e8",
+        label: hasExisting ? "Update" : "Publish",
       });
 
       btn.addEventListener("click", async () => {
-        if ((btn as HTMLButtonElement).disabled) return;
-        (btn as HTMLButtonElement).disabled = true;
+        if (btn.disabled) return;
+        btn.disabled = true;
         btn.textContent = hasExisting ? "Updating…" : "Publishing…";
 
         const code = codeEl.textContent ?? "";
@@ -84,7 +75,7 @@ export default defineContentScript({
           console.log("[design.computer] published:", url);
         } catch (err) {
           btn.textContent = "⚠ Error";
-          (btn as HTMLButtonElement).disabled = false;
+          btn.disabled = false;
           console.error("[design.computer] publish failed:", err);
         }
       });
@@ -94,9 +85,9 @@ export default defineContentScript({
         ".code-block-decoration .buttons",
       );
       if (buttonsDiv) {
-        buttonsDiv.prepend(btn);
+        buttonsDiv.prepend(parentElement);
       } else {
-        container.appendChild(btn);
+        container.appendChild(parentElement);
       }
     }
 

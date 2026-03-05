@@ -1,4 +1,5 @@
 import { sendMessage } from '../lib/messaging'
+import { createPublishButton } from '../lib/publishButton'
 
 export default defineContentScript({
   matches: ['*://claude.ai/*'],
@@ -27,26 +28,14 @@ export default defineContentScript({
 
       const chatId = getChatId()
 
-      const btn = document.createElement('button')
-      btn.className = 'dc-publish-btn'
-      btn.textContent = 'Publish'
-      Object.assign(btn.style, {
-        padding: '0 10px',
-        height: '32px',
-        background: '#d97706',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontSize: '12px',
-        fontFamily: 'sans-serif',
-        fontWeight: '600',
-        flexShrink: '0',
+      const { parentElement, button: btn } = await createPublishButton({
+        accentColor: '#d97706',
+        label: 'Publish',
       })
 
       btn.addEventListener('click', async () => {
-        if ((btn as HTMLButtonElement).disabled) return
-        ;(btn as HTMLButtonElement).disabled = true
+        if (btn.disabled) return
+        btn.disabled = true
         btn.textContent = 'Publishing…'
 
         try {
@@ -59,7 +48,7 @@ export default defineContentScript({
           console.log('[design.computer] published:', url)
         } catch (err) {
           btn.textContent = '⚠ Error'
-          ;(btn as HTMLButtonElement).disabled = false
+          btn.disabled = false
           console.error('[design.computer] publish failed:', err)
         }
       })
@@ -67,7 +56,7 @@ export default defineContentScript({
       // Insert before the Copy button in the header actions area
       const copyBtn = panel.querySelector('button.rounded-l-lg')
       if (copyBtn?.parentElement?.parentElement) {
-        copyBtn.parentElement.parentElement.insertBefore(btn, copyBtn.parentElement)
+        copyBtn.parentElement.parentElement.insertBefore(parentElement, copyBtn.parentElement)
       }
     }
 

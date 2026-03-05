@@ -1,5 +1,6 @@
 import { localExtStorage } from '@webext-core/storage'
 import { sendMessage } from '../lib/messaging'
+import { createPublishButton } from '../lib/publishButton'
 
 export default defineContentScript({
   matches: ['*://chatgpt.com/*'],
@@ -37,34 +38,27 @@ export default defineContentScript({
     }
 
     async function injectButton(block: Element) {
-      if (block.querySelector('.dc-publish-btn')) return
+      if (block.querySelector('dc-publish-btn')) return
 
       const chatId = location.pathname.match(/\/c\/([^/]+)/)?.[1]
       const hasExisting = chatId ? !!(await localExtStorage.getItem<string>(`slug:${chatId}`)) : false
 
-      const btn = document.createElement('button')
-      btn.className = 'dc-publish-btn'
-      btn.textContent = hasExisting ? 'Update' : 'Publish'
-      Object.assign(btn.style, {
-        position: 'absolute',
-        top: '8px',
-        right: '8px',
-        zIndex: '9999',
-        padding: '4px 10px',
-        background: '#10a37f',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '12px',
-        fontFamily: 'sans-serif',
-        fontWeight: '500',
-      })
       ;(block as HTMLElement).style.position = 'relative'
 
+      const { parentElement, button: btn } = await createPublishButton({
+        accentColor: '#10a37f',
+        label: hasExisting ? 'Update' : 'Publish',
+        outerStyles: {
+          position: 'absolute',
+          top: '8px',
+          right: '8px',
+          zIndex: '9999',
+        },
+      })
+
       btn.addEventListener('click', async () => {
-        if ((btn as HTMLButtonElement).disabled) return
-        ;(btn as HTMLButtonElement).disabled = true
+        if (btn.disabled) return
+        btn.disabled = true
         btn.textContent = hasExisting ? 'Updating…' : 'Publishing…'
 
         const code = block.querySelector('.cm-content')?.textContent ?? ''
@@ -77,12 +71,12 @@ export default defineContentScript({
           console.log('[design.computer] published:', url)
         } catch (err) {
           btn.textContent = '⚠ Error'
-          ;(btn as HTMLButtonElement).disabled = false
+          btn.disabled = false
           console.error('[design.computer] publish failed:', err)
         }
       })
 
-      block.appendChild(btn)
+      block.appendChild(parentElement)
     }
 
     // ChatGPT shows the language name in a div immediately before the <pre>
