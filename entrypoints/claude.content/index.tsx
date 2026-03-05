@@ -1,64 +1,34 @@
-import { sendMessage } from '../lib/messaging'
-import { createPublishButton } from '../lib/publishButton'
+import '../../lib/publish-button.css'
+import ReactDOM from 'react-dom/client'
+import { PublishButton } from '../../components/PublishButton'
+import { sendMessage } from '../../lib/messaging'
 
 export default defineContentScript({
   matches: ['*://claude.ai/*'],
+  cssInjectionMode: 'ui',
+
   async main(ctx) {
     let seen = new WeakSet<Element>()
+    let statusPromise = fetchStatus()
 
-    function getChatId(): string | undefined {
+    function getChatId() {
       return location.pathname.match(/\/chat\/([^/]+)/)?.[1]
     }
 
-    function isStreaming(): boolean {
-      // Claude shows a stop button while generating
+    function fetchStatus(): Promise<boolean> {
+      const chatId = getChatId()
+      if (!chatId) return Promise.resolve(false)
+      return sendMessage('checkStatus', { chatId }).then(r => r.exists).catch(() => false)
+    }
+
+    function isStreaming() {
       return !!document.querySelector('button[aria-label="Stop Response"]')
     }
 
-    // Each artifact panel has a Preview/Code toggle in its header
     function getArtifactPanels(): Element[] {
       return Array.from(document.querySelectorAll('button[aria-label="Code"]'))
         .map(btn => btn.closest('.flex.flex-col.h-full.overflow-hidden'))
         .filter((el): el is Element => el !== null)
-    }
-
-    async function injectButton(panel: Element) {
-      if (seen.has(panel)) return
-      seen.add(panel)
-
-      const chatId = getChatId()
-      const hasExisting = chatId ? (await sendMessage('checkStatus', { chatId })).exists : false
-
-      const { parentElement, button: btn } = await createPublishButton({
-        colorClass: 'bg-amber-600',
-        label: hasExisting ? 'Update' : 'Publish',
-      })
-
-      btn.addEventListener('click', async () => {
-        if (btn.disabled) return
-        btn.disabled = true
-        btn.textContent = 'Publishing…'
-
-        try {
-          const code = await readCode(panel)
-          const language = detectLanguage(panel)
-
-          const { url } = await sendMessage('publish', { code, language, chatId })
-          await navigator.clipboard.writeText(url)
-          btn.textContent = '✅ Copied!'
-          console.log('[design.computer] published:', url)
-        } catch (err) {
-          btn.textContent = '⚠ Error'
-          btn.disabled = false
-          console.error('[design.computer] publish failed:', err)
-        }
-      })
-
-      // Insert before the Copy button in the header actions area
-      const copyBtn = panel.querySelector('button.rounded-l-lg')
-      if (copyBtn?.parentElement?.parentElement) {
-        copyBtn.parentElement.parentElement.insertBefore(parentElement, copyBtn.parentElement)
-      }
     }
 
     async function readCode(panel: Element): Promise<string> {
@@ -66,21 +36,14 @@ export default defineContentScript({
       const previewTab = panel.querySelector('button[aria-label="Preview"]') as HTMLButtonElement | null
       const wasPreview = previewTab?.getAttribute('data-state') === 'on'
 
-      // Switch to Code view if needed
       if (wasPreview && codeTab) {
         codeTab.click()
-        // Wait for code element to appear in DOM instead of fixed timeout
         await waitForElement(panel, '.code-block__code', 3000)
       }
 
-      const contentArea = panel.querySelector('.flex-1.min-h-0')
-      console.log('[design.computer] content area innerHTML:', contentArea?.innerHTML?.slice(0, 200))
-
       const codeEl = panel.querySelector('.code-block__code')
-      console.log('[design.computer] codeEl:', codeEl?.tagName, 'text:', codeEl?.textContent?.slice(0, 80))
       const code = codeEl?.textContent ?? ''
 
-      // Restore Preview view
       if (wasPreview && previewTab) {
         previewTab.click()
       }
@@ -107,6 +70,48 @@ export default defineContentScript({
       return 'plaintext'
     }
 
+    async function injectButton(panel: Element) {
+      if (seen.has(panel)) return
+      seen.add(panel)
+
+      const hasExisting = await statusPromise
+      const chatId = getChatId()
+
+      const copyBtn = panel.querySelector('button.rounded-l-lg')
+      const anchor = copyBtn?.parentElement?.parentElement
+      if (!anchor) return
+
+      const ui = await createShadowRootUi(ctx, {
+        name: 'dc-publish-btn',
+        position: 'inline',
+        anchor,
+        onMount(container) {
+          const app = document.createElement('div')
+          container.append(app)
+          const root = ReactDOM.createRoot(app)
+          root.render(
+            <PublishButton
+              chatId={chatId}
+              hasExisting={hasExisting}
+              colorClass="bg-amber-600"
+              getCode={() => readCode(panel)}
+              getLanguage={() => detectLanguage(panel)}
+            />,
+          )
+          return root
+        },
+        onRemove(root) {
+          root?.unmount()
+        },
+      })
+      ui.mount()
+
+      // Move before the copy button group
+      if (copyBtn?.parentElement) {
+        anchor.insertBefore(ui.shadow.host, copyBtn.parentElement)
+      }
+    }
+
     function detectArtifacts() {
       if (isStreaming()) return
       getArtifactPanels().forEach(panel => injectButton(panel))
@@ -116,11 +121,11 @@ export default defineContentScript({
 
     const observer = new MutationObserver(() => detectArtifacts())
     observer.observe(document.body, { childList: true, subtree: true })
-
     ctx.onInvalidated(() => observer.disconnect())
 
     ctx.addEventListener(window, 'wxt:locationchange', () => {
       seen = new WeakSet()
+      statusPromise = fetchStatus()
       detectArtifacts()
     })
   },
