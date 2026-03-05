@@ -8,7 +8,8 @@ export default defineContentScript({
   cssInjectionMode: 'ui',
 
   async main(ctx) {
-    let seen = new WeakSet<Element>()
+    let seenPanels = new WeakSet<Element>()
+    let seenRows = new WeakSet<Element>()
     let statusPromise = fetchStatus()
 
     function getChatId() {
@@ -24,6 +25,8 @@ export default defineContentScript({
     function isStreaming() {
       return !!document.querySelector('button[aria-label="Stop Response"]')
     }
+
+    // --- Side panel buttons ---
 
     function getArtifactPanels(): Element[] {
       return Array.from(document.querySelectorAll('button[aria-label="Code"]'))
@@ -51,28 +54,15 @@ export default defineContentScript({
       return code
     }
 
-    function waitForElement(parent: Element, selector: string, timeout: number): Promise<Element | null> {
-      return new Promise(resolve => {
-        const el = parent.querySelector(selector)
-        if (el) return resolve(el)
-        const timer = setTimeout(() => { obs.disconnect(); resolve(null) }, timeout)
-        const obs = new MutationObserver(() => {
-          const found = parent.querySelector(selector)
-          if (found) { clearTimeout(timer); obs.disconnect(); resolve(found) }
-        })
-        obs.observe(parent, { childList: true, subtree: true })
-      })
-    }
-
-    function detectLanguage(panel: Element): string {
+    function detectPanelLanguage(panel: Element): string {
       const label = panel.querySelector('h2 .text-text-400:not(.opacity-50)')?.textContent?.trim().toLowerCase()
       if (label && /^[a-z]+$/.test(label)) return label
       return 'plaintext'
     }
 
-    async function injectButton(panel: Element) {
-      if (seen.has(panel)) return
-      seen.add(panel)
+    async function injectPanelButton(panel: Element) {
+      if (seenPanels.has(panel)) return
+      seenPanels.add(panel)
 
       const hasExisting = await statusPromise
       const chatId = getChatId()
@@ -95,7 +85,7 @@ export default defineContentScript({
               hasExisting={hasExisting}
               colorClass="bg-amber-600"
               getCode={() => readCode(panel)}
-              getLanguage={() => detectLanguage(panel)}
+              getLanguage={() => detectPanelLanguage(panel)}
             />,
           )
           return root
@@ -106,27 +96,116 @@ export default defineContentScript({
       })
       ui.mount()
 
-      // Move before the copy button group
       if (copyBtn?.parentElement) {
         anchor.insertBefore(ui.shadow.host, copyBtn.parentElement)
       }
     }
 
-    function detectArtifacts() {
-      if (isStreaming()) return
-      getArtifactPanels().forEach(panel => injectButton(panel))
+    // --- Inline chat row buttons ---
+
+    function getArtifactRows(): Element[] {
+      return Array.from(document.querySelectorAll('[aria-label="Preview contents"]'))
     }
 
-    detectArtifacts()
+    function detectRowLanguage(row: Element): string {
+      const meta = row.querySelector('.text-text-400')?.textContent ?? ''
+      const lang = meta.split('\u00B7').pop()?.trim().toLowerCase() ?? ''
+      if (lang && /^[a-z]+$/.test(lang)) return lang
+      return 'plaintext'
+    }
 
-    const observer = new MutationObserver(() => detectArtifacts())
+    function waitForPanel(timeout: number): Promise<Element | null> {
+      return new Promise(resolve => {
+        const found = getArtifactPanels()[0]
+        if (found) return resolve(found)
+        const timer = setTimeout(() => { obs.disconnect(); resolve(null) }, timeout)
+        const obs = new MutationObserver(() => {
+          const panel = getArtifactPanels()[0]
+          if (panel) { clearTimeout(timer); obs.disconnect(); resolve(panel) }
+        })
+        obs.observe(document.body, { childList: true, subtree: true })
+      })
+    }
+
+    async function injectRowButton(row: Element) {
+      if (seenRows.has(row)) return
+      seenRows.add(row)
+
+      const hasExisting = await statusPromise
+      const chatId = getChatId()
+
+      const downloadBtn = row.querySelector('button[aria-label="Download"]')
+      const buttonsContainer = downloadBtn?.parentElement
+      if (!buttonsContainer) return
+
+      const ui = await createShadowRootUi(ctx, {
+        name: 'dc-row-publish-btn',
+        position: 'inline',
+        anchor: buttonsContainer,
+        isolateEvents: ['click', 'mousedown', 'pointerdown'],
+        onMount(container) {
+          const app = document.createElement('div')
+          container.append(app)
+          const root = ReactDOM.createRoot(app)
+          root.render(
+            <PublishButton
+              chatId={chatId}
+              hasExisting={hasExisting}
+              colorClass="bg-amber-600"
+              getCode={async () => {
+                ;(row as HTMLElement).click()
+                const panel = await waitForPanel(3000)
+                if (!panel) return ''
+                // Wait for code to be available in the panel
+                await waitForElement(panel, '.code-block__code', 3000)
+                return readCode(panel)
+              }}
+              getLanguage={() => detectRowLanguage(row)}
+            />,
+          )
+          return root
+        },
+        onRemove(root) {
+          root?.unmount()
+        },
+      })
+      ui.mount()
+    }
+
+    // --- Shared helpers ---
+
+    function waitForElement(parent: Element, selector: string, timeout: number): Promise<Element | null> {
+      return new Promise(resolve => {
+        const el = parent.querySelector(selector)
+        if (el) return resolve(el)
+        const timer = setTimeout(() => { obs.disconnect(); resolve(null) }, timeout)
+        const obs = new MutationObserver(() => {
+          const found = parent.querySelector(selector)
+          if (found) { clearTimeout(timer); obs.disconnect(); resolve(found) }
+        })
+        obs.observe(parent, { childList: true, subtree: true })
+      })
+    }
+
+    // --- Detection ---
+
+    function detect() {
+      if (isStreaming()) return
+      getArtifactPanels().forEach(panel => injectPanelButton(panel))
+      getArtifactRows().forEach(row => injectRowButton(row))
+    }
+
+    detect()
+
+    const observer = new MutationObserver(() => detect())
     observer.observe(document.body, { childList: true, subtree: true })
     ctx.onInvalidated(() => observer.disconnect())
 
     ctx.addEventListener(window, 'wxt:locationchange', () => {
-      seen = new WeakSet()
+      seenPanels = new WeakSet()
+      seenRows = new WeakSet()
       statusPromise = fetchStatus()
-      detectArtifacts()
+      detect()
     })
   },
 })
