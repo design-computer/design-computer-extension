@@ -6,7 +6,7 @@ import { sendMessage } from '../../lib/messaging'
 const appPattern = new MatchPattern('*://gemini.google.com/app/*')
 
 export default defineContentScript({
-  matches: ['*://gemini.google.com/app/*'],
+  matches: ['*://gemini.google.com/*'],
   cssInjectionMode: 'ui',
 
   async main(ctx) {
