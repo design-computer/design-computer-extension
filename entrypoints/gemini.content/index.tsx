@@ -63,6 +63,7 @@ export default defineContentScript({
               colorClass="bg-[#1a73e8]"
               getCode={() => codeEl.textContent ?? ''}
               getLanguage={() => detectLanguage(codeContainer)}
+              onPublished={() => { statusPromise = Promise.resolve(true) }}
             />,
           )
           return root

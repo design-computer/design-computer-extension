@@ -7,6 +7,7 @@ export interface PublishButtonProps {
   colorClass: string
   getCode: () => string | Promise<string>
   getLanguage: () => string
+  onPublished?: () => void
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -32,7 +33,7 @@ async function copyToClipboard(text: string): Promise<boolean> {
   return false
 }
 
-export function PublishButton({ chatId, hasExisting, colorClass, getCode, getLanguage }: PublishButtonProps) {
+export function PublishButton({ chatId, hasExisting, colorClass, getCode, getLanguage, onPublished }: PublishButtonProps) {
   const [label, setLabel] = useState(hasExisting ? 'Update' : 'Publish')
   const [disabled, setDisabled] = useState(false)
 
@@ -47,6 +48,7 @@ export function PublishButton({ chatId, hasExisting, colorClass, getCode, getLan
       const { url } = await sendMessage('publish', { code, language, chatId })
       const copied = await copyToClipboard(url)
       setLabel(copied ? 'Copied!' : 'Published!')
+      onPublished?.()
       console.log('[design.computer] published:', url)
     } catch (err) {
       setLabel('Error')

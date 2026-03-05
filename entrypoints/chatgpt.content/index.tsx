@@ -73,6 +73,7 @@ export default defineContentScript({
               colorClass="bg-[#10a37f]"
               getCode={() => block.querySelector('.cm-content')?.textContent ?? ''}
               getLanguage={() => detectLanguage(block)}
+              onPublished={() => { statusPromise = Promise.resolve(true) }}
             />,
           )
           return root
