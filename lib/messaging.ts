@@ -18,7 +18,17 @@ export interface CheckStatusResult {
   exists: boolean
 }
 
+export type SessionData = {
+  user: {
+    id: string
+    name: string
+    email: string
+    image?: string | null
+  }
+} | null
+
 export const { sendMessage, onMessage } = defineExtensionMessaging<{
   publish(data: PublishData): PublishResult
   checkStatus(data: CheckStatusData): CheckStatusResult
+  getSession(data: void): SessionData
 }>()
