@@ -1,20 +1,13 @@
-import '../../lib/publish-button.css'
+import '../lib/publish-button.css'
 import ReactDOM from 'react-dom/client'
-import { PublishButton } from '../../components/PublishButton'
-import { sendMessage } from '../../lib/messaging'
+import { PublishButton } from '../components/PublishButton'
+import { sendMessage } from '../lib/messaging'
 
 export default defineContentScript({
   matches: ['*://claude.ai/*'],
   cssInjectionMode: 'ui',
 
   async main(ctx) {
-    // Fetch session from web app via background
-    sendMessage('getSession', undefined).then(session => {
-      console.log('[design.computer] session on Claude:', session)
-    }).catch(err => {
-      console.warn('[design.computer] failed to get session:', err)
-    })
-
     let seenPanels = new WeakSet<Element>()
     let seenRows = new WeakSet<Element>()
     let statusPromise = fetchStatus()
@@ -41,64 +34,18 @@ export default defineContentScript({
         .filter((el): el is Element => el !== null)
     }
 
-    const CODE_SELECTORS = [
-      '.code-block__code',
-      'pre code',
-      '.cm-content',
-      'code',
-      'pre',
-    ]
-
-    function findCodeElement(parent: Element): Element | null {
-      for (const sel of CODE_SELECTORS) {
-        const el = parent.querySelector(sel)
-        if (el?.textContent?.trim()) return el
-      }
-      return null
-    }
-
     async function readCode(panel: Element): Promise<string> {
       const codeTab = panel.querySelector('button[aria-label="Code"]') as HTMLButtonElement | null
       const previewTab = panel.querySelector('button[aria-label="Preview"]') as HTMLButtonElement | null
       const wasPreview = previewTab?.getAttribute('data-state') === 'on'
 
-      // Try reading from the preview iframe first (HTML artifacts)
-      if (wasPreview) {
-        try {
-          const iframe = panel.querySelector('iframe[title="Claude content"]') as HTMLIFrameElement | null
-          const iframeDoc = iframe?.contentDocument
-          if (iframeDoc?.documentElement) {
-            const html = iframeDoc.documentElement.outerHTML
-            if (html.trim()) {
-              console.log('[design.computer] read HTML from preview iframe')
-              return html
-            }
-          }
-        } catch {
-          // cross-origin — fall through to code tab
-        }
-      }
-
-      // Switch to Code tab
       if (wasPreview && codeTab) {
         codeTab.click()
-        // Wait for any code element to appear
-        await new Promise<void>(resolve => {
-          let tries = 0
-          const interval = setInterval(() => {
-            tries++
-            if (findCodeElement(panel) || tries > 30) {
-              clearInterval(interval)
-              resolve()
-            }
-          }, 100)
-        })
+        await waitForElement(panel, '.code-block__code', 3000)
       }
 
-      const codeEl = findCodeElement(panel)
+      const codeEl = panel.querySelector('.code-block__code')
       const code = codeEl?.textContent ?? ''
-
-      console.log('[design.computer] readCode result:', code.length, 'chars, selector:', codeEl?.tagName, codeEl?.className)
 
       if (wasPreview && previewTab) {
         previewTab.click()
@@ -210,7 +157,6 @@ export default defineContentScript({
                 ;(row as HTMLElement).click()
                 const panel = await waitForPanel(3000)
                 if (!panel) return ''
-                // Wait for code to be available in the panel
                 await waitForElement(panel, '.code-block__code', 3000)
                 return readCode(panel)
               }}

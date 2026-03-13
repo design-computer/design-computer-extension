@@ -1,6 +1,7 @@
 import { localExtStorage } from '@webext-core/storage'
+import type { SessionData } from './messaging'
 
-const WORKER_URL = import.meta.env.VITE_WORKER_URL ?? 'https://api.curiosive.com'
+const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'https://getdesignapp.ugurkellecioglu.com'
 
 export interface PublishResponse {
   slug: string
@@ -12,10 +13,8 @@ export interface StatusResponse {
 }
 
 export async function checkStatus(chatId: string): Promise<StatusResponse> {
-  const token = await localExtStorage.getItem<string>('authToken')
-
-  const res = await fetch(`${WORKER_URL}/status?chatId=${encodeURIComponent(chatId)}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  const res = await fetch(`${WEB_URL}/api/status?chatId=${encodeURIComponent(chatId)}`, {
+    credentials: 'include',
   })
 
   if (!res.ok) return { exists: false }
@@ -24,15 +23,16 @@ export async function checkStatus(chatId: string): Promise<StatusResponse> {
 }
 
 export async function publish(html: string, chatId?: string): Promise<PublishResponse> {
-  const token = await localExtStorage.getItem<string>('authToken')
-
-  const res = await fetch(`${WORKER_URL}/publish`, {
+  const res = await fetch(`${WEB_URL}/api/publish`, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ html, ...(chatId ? { chatId } : {}) }),
+    body: JSON.stringify({
+      html,
+      ...(chatId ? { chatId } : {}),
+    }),
   })
 
   if (!res.ok) {
@@ -41,4 +41,19 @@ export async function publish(html: string, chatId?: string): Promise<PublishRes
   }
 
   return res.json() as Promise<PublishResponse>
+}
+
+export async function getSession(): Promise<SessionData> {
+  const res = await fetch(`${WEB_URL}/api/auth/get-session`, {
+    credentials: 'include',
+  })
+
+  if (!res.ok) return null
+
+  const data = await res.json() as { session?: unknown; user?: NonNullable<SessionData>['user'] }
+  if (!data.user) return null
+
+  await localExtStorage.setItem('userId', data.user.id)
+
+  return { user: data.user }
 }
