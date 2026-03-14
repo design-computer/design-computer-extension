@@ -10,6 +10,15 @@ export default defineContentScript({
   cssInjectionMode: 'ui',
 
   async main(ctx) {
+    // Fetch session from web app via background
+    sendMessage('getSession', undefined)
+      .then((session) => {
+        console.log('[design.computer] session on Gemini:', session)
+      })
+      .catch((err) => {
+        console.warn('[design.computer] failed to get session:', err)
+      })
+
     let seen = new WeakSet<Element>()
     let statusPromise = fetchStatus()
 
@@ -20,7 +29,9 @@ export default defineContentScript({
     function fetchStatus(): Promise<boolean> {
       const chatId = getChatId()
       if (!chatId) return Promise.resolve(false)
-      return sendMessage('checkStatus', { chatId }).then(r => r.exists).catch(() => false)
+      return sendMessage('checkStatus', { chatId })
+        .then((r) => r.exists)
+        .catch(() => false)
     }
 
     function isStreaming() {
@@ -59,11 +70,14 @@ export default defineContentScript({
           root.render(
             <PublishButton
               chatId={chatId}
+              chatUrl={location.href}
               hasExisting={hasExisting}
               colorClass="bg-[#1a73e8]"
               getCode={() => codeEl.textContent ?? ''}
               getLanguage={() => detectLanguage(codeContainer)}
-              onPublished={() => { statusPromise = Promise.resolve(true) }}
+              onPublished={() => {
+                statusPromise = Promise.resolve(true)
+              }}
             />,
           )
           return root
@@ -84,7 +98,7 @@ export default defineContentScript({
       if (isStreaming()) return
       document
         .querySelectorAll('code[data-test-id="code-content"]')
-        .forEach(el => injectButton(el))
+        .forEach((el) => injectButton(el))
     }
 
     detectCodeBlocks()

@@ -9,11 +9,13 @@ export default defineContentScript({
 
   async main(ctx) {
     // Fetch session from web app via background
-    sendMessage('getSession', undefined).then(session => {
-      console.log('[design.computer] session on Claude:', session)
-    }).catch(err => {
-      console.warn('[design.computer] failed to get session:', err)
-    })
+    sendMessage('getSession', undefined)
+      .then((session) => {
+        console.log('[design.computer] session on Claude:', session)
+      })
+      .catch((err) => {
+        console.warn('[design.computer] failed to get session:', err)
+      })
 
     let seenPanels = new WeakSet<Element>()
     let seenRows = new WeakSet<Element>()
@@ -26,7 +28,9 @@ export default defineContentScript({
     function fetchStatus(): Promise<boolean> {
       const chatId = getChatId()
       if (!chatId) return Promise.resolve(false)
-      return sendMessage('checkStatus', { chatId }).then(r => r.exists).catch(() => false)
+      return sendMessage('checkStatus', { chatId })
+        .then((r) => r.exists)
+        .catch(() => false)
     }
 
     function isStreaming() {
@@ -37,17 +41,11 @@ export default defineContentScript({
 
     function getArtifactPanels(): Element[] {
       return Array.from(document.querySelectorAll('button[aria-label="Code"]'))
-        .map(btn => btn.closest('.flex.flex-col.h-full.overflow-hidden'))
+        .map((btn) => btn.closest('.flex.flex-col.h-full.overflow-hidden'))
         .filter((el): el is Element => el !== null)
     }
 
-    const CODE_SELECTORS = [
-      '.code-block__code',
-      'pre code',
-      '.cm-content',
-      'code',
-      'pre',
-    ]
+    const CODE_SELECTORS = ['.code-block__code', 'pre code', '.cm-content', 'code', 'pre']
 
     function findCodeElement(parent: Element): Element | null {
       for (const sel of CODE_SELECTORS) {
@@ -59,13 +57,17 @@ export default defineContentScript({
 
     async function readCode(panel: Element): Promise<string> {
       const codeTab = panel.querySelector('button[aria-label="Code"]') as HTMLButtonElement | null
-      const previewTab = panel.querySelector('button[aria-label="Preview"]') as HTMLButtonElement | null
+      const previewTab = panel.querySelector(
+        'button[aria-label="Preview"]',
+      ) as HTMLButtonElement | null
       const wasPreview = previewTab?.getAttribute('data-state') === 'on'
 
       // Try reading from the preview iframe first (HTML artifacts)
       if (wasPreview) {
         try {
-          const iframe = panel.querySelector('iframe[title="Claude content"]') as HTMLIFrameElement | null
+          const iframe = panel.querySelector(
+            'iframe[title="Claude content"]',
+          ) as HTMLIFrameElement | null
           const iframeDoc = iframe?.contentDocument
           if (iframeDoc?.documentElement) {
             const html = iframeDoc.documentElement.outerHTML
@@ -83,7 +85,7 @@ export default defineContentScript({
       if (wasPreview && codeTab) {
         codeTab.click()
         // Wait for any code element to appear
-        await new Promise<void>(resolve => {
+        await new Promise<void>((resolve) => {
           let tries = 0
           const interval = setInterval(() => {
             tries++
@@ -98,7 +100,13 @@ export default defineContentScript({
       const codeEl = findCodeElement(panel)
       const code = codeEl?.textContent ?? ''
 
-      console.log('[design.computer] readCode result:', code.length, 'chars, selector:', codeEl?.tagName, codeEl?.className)
+      console.log(
+        '[design.computer] readCode result:',
+        code.length,
+        'chars, selector:',
+        codeEl?.tagName,
+        codeEl?.className,
+      )
 
       if (wasPreview && previewTab) {
         previewTab.click()
@@ -108,7 +116,10 @@ export default defineContentScript({
     }
 
     function detectPanelLanguage(panel: Element): string {
-      const label = panel.querySelector('h2 .text-text-400:not(.opacity-50)')?.textContent?.trim().toLowerCase()
+      const label = panel
+        .querySelector('h2 .text-text-400:not(.opacity-50)')
+        ?.textContent?.trim()
+        .toLowerCase()
       if (label && /^[a-z]+$/.test(label)) return label
       return 'plaintext'
     }
@@ -135,11 +146,14 @@ export default defineContentScript({
           root.render(
             <PublishButton
               chatId={chatId}
+              chatUrl={location.href}
               hasExisting={hasExisting}
               colorClass="bg-amber-600"
               getCode={() => readCode(panel)}
               getLanguage={() => detectPanelLanguage(panel)}
-              onPublished={() => { statusPromise = Promise.resolve(true) }}
+              onPublished={() => {
+                statusPromise = Promise.resolve(true)
+              }}
             />,
           )
           return root
@@ -169,13 +183,20 @@ export default defineContentScript({
     }
 
     function waitForPanel(timeout: number): Promise<Element | null> {
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         const found = getArtifactPanels()[0]
         if (found) return resolve(found)
-        const timer = setTimeout(() => { obs.disconnect(); resolve(null) }, timeout)
+        const timer = setTimeout(() => {
+          obs.disconnect()
+          resolve(null)
+        }, timeout)
         const obs = new MutationObserver(() => {
           const panel = getArtifactPanels()[0]
-          if (panel) { clearTimeout(timer); obs.disconnect(); resolve(panel) }
+          if (panel) {
+            clearTimeout(timer)
+            obs.disconnect()
+            resolve(panel)
+          }
         })
         obs.observe(document.body, { childList: true, subtree: true })
       })
@@ -204,6 +225,7 @@ export default defineContentScript({
           root.render(
             <PublishButton
               chatId={chatId}
+              chatUrl={location.href}
               hasExisting={hasExisting}
               colorClass="bg-amber-600"
               getCode={async () => {
@@ -215,7 +237,9 @@ export default defineContentScript({
                 return readCode(panel)
               }}
               getLanguage={() => detectRowLanguage(row)}
-              onPublished={() => { statusPromise = Promise.resolve(true) }}
+              onPublished={() => {
+                statusPromise = Promise.resolve(true)
+              }}
             />,
           )
           return root
@@ -229,14 +253,25 @@ export default defineContentScript({
 
     // --- Shared helpers ---
 
-    function waitForElement(parent: Element, selector: string, timeout: number): Promise<Element | null> {
-      return new Promise(resolve => {
+    function waitForElement(
+      parent: Element,
+      selector: string,
+      timeout: number,
+    ): Promise<Element | null> {
+      return new Promise((resolve) => {
         const el = parent.querySelector(selector)
         if (el) return resolve(el)
-        const timer = setTimeout(() => { obs.disconnect(); resolve(null) }, timeout)
+        const timer = setTimeout(() => {
+          obs.disconnect()
+          resolve(null)
+        }, timeout)
         const obs = new MutationObserver(() => {
           const found = parent.querySelector(selector)
-          if (found) { clearTimeout(timer); obs.disconnect(); resolve(found) }
+          if (found) {
+            clearTimeout(timer)
+            obs.disconnect()
+            resolve(found)
+          }
         })
         obs.observe(parent, { childList: true, subtree: true })
       })
@@ -246,8 +281,8 @@ export default defineContentScript({
 
     function detect() {
       if (isStreaming()) return
-      getArtifactPanels().forEach(panel => injectPanelButton(panel))
-      getArtifactRows().forEach(row => injectRowButton(row))
+      getArtifactPanels().forEach((panel) => injectPanelButton(panel))
+      getArtifactRows().forEach((row) => injectRowButton(row))
     }
 
     detect()

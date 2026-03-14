@@ -4,6 +4,7 @@ export interface PublishData {
   code: string
   language?: string
   chatId?: string
+  chatUrl?: string
 }
 
 export interface PublishResult {
