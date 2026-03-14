@@ -2,7 +2,7 @@
   "name": "get-design",
   "description": "Publish code from ChatGPT, Claude, and Gemini to a live URL in one click.",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -17,7 +17,8 @@
     "postinstall": "wxt prepare",
     "e2e": "wxt build && playwright test",
     "e2e:headed": "wxt build && playwright test --headed",
-    "e2e:login": "wxt build && node scripts/login-session.mjs"
+    "e2e:login": "wxt build && node scripts/login-session.mjs",
+    "prepare": "husky"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",
@@ -28,12 +29,18 @@
     "sucrase": "^3.35.1",
     "tailwindcss": "^4.2.1"
   },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,css,md}": "prettier --write"
+  },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "^4.0.18",
     "@wxt-dev/module-react": "^1.1.5",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.4",
+    "prettier": "^3.8.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
     "wxt": "^0.20.18"
