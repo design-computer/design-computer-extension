@@ -22,7 +22,11 @@ export async function checkStatus(chatId: string): Promise<StatusResponse> {
   return res.json() as Promise<StatusResponse>
 }
 
-export async function publish(html: string, chatId?: string): Promise<PublishResponse> {
+export async function publish(
+  html: string,
+  chatId?: string,
+  chatUrl?: string,
+): Promise<PublishResponse> {
   const res = await fetch(`${WEB_URL}/api/publish`, {
     method: 'POST',
     credentials: 'include',
@@ -32,6 +36,7 @@ export async function publish(html: string, chatId?: string): Promise<PublishRes
     body: JSON.stringify({
       html,
       ...(chatId ? { chatId } : {}),
+      ...(chatUrl ? { chatUrl } : {}),
     }),
   })
 
@@ -50,7 +55,7 @@ export async function getSession(): Promise<SessionData> {
 
   if (!res.ok) return null
 
-  const data = await res.json() as { session?: unknown; user?: NonNullable<SessionData>['user'] }
+  const data = (await res.json()) as { session?: unknown; user?: NonNullable<SessionData>['user'] }
   if (!data.user) return null
 
   await localExtStorage.setItem('userId', data.user.id)

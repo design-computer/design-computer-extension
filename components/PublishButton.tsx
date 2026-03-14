@@ -3,6 +3,7 @@ import { sendMessage } from '../lib/messaging'
 
 export interface PublishButtonProps {
   chatId?: string
+  chatUrl?: string
   hasExisting: boolean
   colorClass: string
   getCode: () => string | Promise<string>
@@ -15,7 +16,9 @@ async function copyToClipboard(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text)
     return true
-  } catch { /* may fail in shadow DOM due to focus/gesture restrictions */ }
+  } catch {
+    /* may fail in shadow DOM due to focus/gesture restrictions */
+  }
 
   // Fallback: create a temporary textarea in the host document
   try {
@@ -28,12 +31,22 @@ async function copyToClipboard(text: string): Promise<boolean> {
     const ok = document.execCommand('copy')
     document.body.removeChild(textarea)
     if (ok) return true
-  } catch { /* execCommand may also be restricted */ }
+  } catch {
+    /* execCommand may also be restricted */
+  }
 
   return false
 }
 
-export function PublishButton({ chatId, hasExisting, colorClass, getCode, getLanguage, onPublished }: PublishButtonProps) {
+export function PublishButton({
+  chatId,
+  chatUrl,
+  hasExisting,
+  colorClass,
+  getCode,
+  getLanguage,
+  onPublished,
+}: PublishButtonProps) {
   const [label, setLabel] = useState(hasExisting ? 'Update' : 'Publish')
   const [disabled, setDisabled] = useState(false)
 
@@ -45,7 +58,7 @@ export function PublishButton({ chatId, hasExisting, colorClass, getCode, getLan
     try {
       const code = await getCode()
       const language = getLanguage()
-      const { url } = await sendMessage('publish', { code, language, chatId })
+      const { url } = await sendMessage('publish', { code, language, chatId, chatUrl })
       const copied = await copyToClipboard(url)
       setLabel(copied ? 'Copied!' : 'Published!')
       onPublished?.()

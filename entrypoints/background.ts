@@ -14,7 +14,7 @@ export default defineBackground(() => {
 
   onMessage('publish', async ({ data }) => {
     const html = codeToHtml(data.code, data.language)
-    return publish(html, data.chatId)
+    return publish(html, data.chatId, data.chatUrl)
   })
 
   onMessage('checkStatus', async ({ data }) => {
