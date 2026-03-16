@@ -26,6 +26,8 @@ export async function publish(
   html: string,
   chatId?: string,
   chatUrl?: string,
+  slug?: string,
+  domain?: string,
 ): Promise<PublishResponse> {
   const res = await fetch(`${WEB_URL}/api/publish`, {
     method: 'POST',
@@ -37,6 +39,8 @@ export async function publish(
       html,
       ...(chatId ? { chatId } : {}),
       ...(chatUrl ? { chatUrl } : {}),
+      ...(slug ? { slug } : {}),
+      ...(domain ? { domain } : {}),
     }),
   })
 
@@ -46,6 +50,32 @@ export async function publish(
   }
 
   return res.json() as Promise<PublishResponse>
+}
+
+export async function getDomains(): Promise<string[]> {
+  const res = await fetch(`${WEB_URL}/api/domains`, {
+    credentials: 'include',
+  })
+  if (!res.ok) return []
+  const data = (await res.json()) as { domains: string[] }
+  return data.domains || []
+}
+
+export async function getProjects(): Promise<{ id: string; slug: string; domain: string }[]> {
+  const res = await fetch(`${WEB_URL}/api/projects`, {
+    credentials: 'include',
+  })
+  if (!res.ok) return []
+  const data = (await res.json()) as { projects: { id: string; slug: string; domain: string }[] }
+  return data.projects || []
+}
+
+export async function checkSlug(slug: string): Promise<{ available: boolean }> {
+  const res = await fetch(`${WEB_URL}/api/check-slug?slug=${encodeURIComponent(slug)}`, {
+    credentials: 'include',
+  })
+  if (!res.ok) return { available: false }
+  return res.json() as Promise<{ available: boolean }>
 }
 
 export async function getSession(): Promise<SessionData> {
