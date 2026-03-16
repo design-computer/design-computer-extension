@@ -5,6 +5,8 @@ export interface PublishData {
   language?: string
   chatId?: string
   chatUrl?: string
+  slug?: string
+  domain?: string
 }
 
 export interface PublishResult {
@@ -17,6 +19,8 @@ export interface CheckStatusData {
 
 export interface CheckStatusResult {
   exists: boolean
+  slug?: string
+  domain?: string
 }
 
 export type SessionData = {
@@ -28,8 +32,25 @@ export type SessionData = {
   }
 } | null
 
+export interface CheckSlugData {
+  slug: string
+}
+
+export interface CheckSlugResult {
+  available: boolean
+}
+
+export interface ProjectItem {
+  id: string
+  slug: string
+  domain: string
+}
+
 export const { sendMessage, onMessage } = defineExtensionMessaging<{
   publish(data: PublishData): PublishResult
   checkStatus(data: CheckStatusData): CheckStatusResult
+  checkSlug(data: CheckSlugData): CheckSlugResult
   getSession(data: void): SessionData
+  getProjects(data: void): ProjectItem[]
+  getDomains(data: void): string[]
 }>()

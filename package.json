@@ -22,11 +22,20 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",
+    "@webext-core/isolated-element": "^2.0.0",
     "@webext-core/messaging": "^2.3.0",
     "@webext-core/storage": "^1.2.0",
+    "canvas-confetti": "^1.9.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "framer-motion": "^12.36.0",
+    "qrcode": "^1.5.4",
+    "radix-ui": "^1.4.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "sucrase": "^3.35.1",
+    "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1"
   },
   "lint-staged": {
@@ -34,6 +43,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
     "@vitest/coverage-v8": "^4.0.18",
