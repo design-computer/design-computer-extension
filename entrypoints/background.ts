@@ -1,5 +1,5 @@
 import { onMessage } from '../lib/messaging'
-import { publish, checkStatus, getSession } from '../lib/api'
+import { publish, checkStatus, checkSlug, getSession, getProjects, getDomains } from '../lib/api'
 import { codeToHtml } from '../lib/code-to-html'
 
 export default defineBackground(() => {
@@ -12,13 +12,35 @@ export default defineBackground(() => {
     }
   })
 
+  // Extension icon click → toggle panel in active tab
+  browser.action.onClicked.addListener(async (tab) => {
+    if (!tab.id) return
+    try {
+      await browser.tabs.sendMessage(tab.id, { type: 'togglePanel' })
+    } catch {
+      // Content script not loaded on this page — ignore
+    }
+  })
+
   onMessage('publish', async ({ data }) => {
     const html = codeToHtml(data.code, data.language)
-    return publish(html, data.chatId, data.chatUrl)
+    return publish(html, data.chatId, data.chatUrl, data.slug, data.domain)
   })
 
   onMessage('checkStatus', async ({ data }) => {
     return checkStatus(data.chatId)
+  })
+
+  onMessage('checkSlug', async ({ data }) => {
+    return checkSlug(data.slug)
+  })
+
+  onMessage('getProjects', async () => {
+    return getProjects()
+  })
+
+  onMessage('getDomains', async () => {
+    return getDomains()
   })
 
   onMessage('getSession', async () => {
