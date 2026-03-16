@@ -8,8 +8,13 @@ import confetti from 'canvas-confetti'
 import QRCode from 'qrcode'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 
-const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'https://getdesignapp.ugurkellecioglu.com'
-const DEFAULT_DOMAIN = 'curiosive.com'
+const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'https://my.design.computer'
+const DEFAULT_DOMAIN = 'wip.page'
+
+interface DomainInfo {
+  domain: string
+  type: 'burner' | 'vanity'
+}
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 
@@ -283,7 +288,7 @@ function LoggedInView({
   const [showQr, setShowQr] = useState(false)
   const [copied, setCopied] = useState(false)
   const [domainOpen, setDomainOpen] = useState(false)
-  const [domains, setDomains] = useState<string[]>([DEFAULT_DOMAIN])
+  const [domains, setDomains] = useState<DomainInfo[]>([{ domain: DEFAULT_DOMAIN, type: 'burner' }])
   const [selectedDomain, setSelectedDomain] = useState(DEFAULT_DOMAIN)
   const [isUpdate, setIsUpdate] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -302,7 +307,7 @@ function LoggedInView({
       .then((d) => {
         if (d.length > 0) {
           setDomains(d)
-          setSelectedDomain(d[0])
+          setSelectedDomain(d[0].domain)
         }
       })
       .catch(() => {})
@@ -611,14 +616,19 @@ function LoggedInView({
                   <PopoverContent align="end" sideOffset={8} className="min-w-[160px] p-1">
                     {domains.map((d) => (
                       <div
-                        key={d}
+                        key={d.domain}
                         onClick={() => {
-                          setSelectedDomain(d)
+                          setSelectedDomain(d.domain)
                           setDomainOpen(false)
                         }}
-                        className={`px-2.5 py-1.5 rounded-lg cursor-pointer text-[13px] font-medium font-sans leading-5 whitespace-nowrap ${selectedDomain === d ? 'bg-surface text-black' : 'text-[#666] hover:bg-[#f8f8f8]'}`}
+                        className={`px-2.5 py-1.5 rounded-lg cursor-pointer text-[13px] font-medium font-sans leading-5 whitespace-nowrap flex items-center gap-2 ${selectedDomain === d.domain ? 'bg-surface text-black' : 'text-[#666] hover:bg-[#f8f8f8]'}`}
                       >
-                        {d}
+                        <span>{d.domain}</span>
+                        {d.type === 'vanity' && (
+                          <span className="text-[10px] font-medium text-[#459ef2] bg-[#459ef2]/10 px-1.5 py-0.5 rounded-full leading-none">
+                            PRO
+                          </span>
+                        )}
                       </div>
                     ))}
                   </PopoverContent>
