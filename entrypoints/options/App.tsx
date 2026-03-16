@@ -12,7 +12,7 @@ const SITES: SitePermission[] = [
   {
     id: 'api',
     name: 'Get Design API',
-    origin: 'https://api.curiosive.com/*',
+    origin: 'https://my.design.computer/*',
     description: 'Required to publish your code to a live URL',
     icon: '',
   },
@@ -54,28 +54,28 @@ export default function App() {
     setGranted(result)
   }
 
-  const allGranted = SITES.every(site => granted[site.id])
+  const allGranted = SITES.every((site) => granted[site.id])
 
   async function requestAll() {
     const ok = await browser.permissions.request({
-      origins: SITES.map(s => s.origin),
+      origins: SITES.map((s) => s.origin),
     })
     if (ok) {
-      setGranted(Object.fromEntries(SITES.map(s => [s.id, true])))
+      setGranted(Object.fromEntries(SITES.map((s) => [s.id, true])))
     }
   }
 
   async function requestPermission(site: SitePermission) {
     const ok = await browser.permissions.request({ origins: [site.origin] })
     if (ok) {
-      setGranted(prev => ({ ...prev, [site.id]: true }))
+      setGranted((prev) => ({ ...prev, [site.id]: true }))
     }
   }
 
   async function revokePermission(site: SitePermission) {
     const ok = await browser.permissions.remove({ origins: [site.origin] })
     if (ok) {
-      setGranted(prev => ({ ...prev, [site.id]: false }))
+      setGranted((prev) => ({ ...prev, [site.id]: false }))
     }
   }
 
@@ -83,7 +83,8 @@ export default function App() {
     <div className="max-w-xl mx-auto py-12 px-4">
       <h1 className="text-2xl font-bold mb-2">Get Design</h1>
       <p className="text-gray-500 mb-8">
-        Enable the sites where you'd like a Publish button on code blocks. We never read or modify your conversations — we only access the code you choose to publish.
+        Enable the sites where you'd like a Publish button on code blocks. We never read or modify
+        your conversations — we only access the code you choose to publish.
       </p>
 
       {!allGranted && (
@@ -96,7 +97,7 @@ export default function App() {
       )}
 
       <div className="flex flex-col gap-4">
-        {SITES.map(site => {
+        {SITES.map((site) => {
           const isGranted = granted[site.id] ?? false
           return (
             <div
@@ -108,10 +109,14 @@ export default function App() {
                   src={site.icon}
                   alt=""
                   className="w-8 h-8 rounded"
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  onError={(e) => {
+                    ;(e.target as HTMLImageElement).style.display = 'none'
+                  }}
                 />
               ) : (
-                <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-400 text-xs font-bold">API</div>
+                <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-400 text-xs font-bold">
+                  API
+                </div>
               )}
               <div className="flex-1 min-w-0">
                 <h2 className="font-semibold text-sm">{site.name}</h2>
