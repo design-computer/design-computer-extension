@@ -1,7 +1,7 @@
 import { localExtStorage } from '@webext-core/storage'
 import type { SessionData } from './messaging'
 
-const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'https://getdesignapp.ugurkellecioglu.com'
+const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'https://my.design.computer'
 
 export interface PublishResponse {
   slug: string
@@ -52,12 +52,12 @@ export async function publish(
   return res.json() as Promise<PublishResponse>
 }
 
-export async function getDomains(): Promise<string[]> {
+export async function getDomains(): Promise<{ domain: string; type: 'burner' | 'vanity' }[]> {
   const res = await fetch(`${WEB_URL}/api/domains`, {
     credentials: 'include',
   })
   if (!res.ok) return []
-  const data = (await res.json()) as { domains: string[] }
+  const data = (await res.json()) as { domains: { domain: string; type: 'burner' | 'vanity' }[] }
   return data.domains || []
 }
 
