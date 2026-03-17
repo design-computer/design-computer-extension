@@ -7,6 +7,13 @@ const AI_ORIGINS = ['*://claude.ai/*', '*://chatgpt.com/*', '*://gemini.google.c
 export default defineBackground(() => {
   console.log('[design.computer] background active', { id: browser.runtime.id })
 
+  // Open options page on first install
+  browser.runtime.onInstalled.addListener((details) => {
+    if (details.reason === 'install') {
+      browser.runtime.openOptionsPage()
+    }
+  })
+
   // On startup, register content scripts for any already-granted permissions
   registerGrantedContentScripts()
 
@@ -17,14 +24,54 @@ export default defineBackground(() => {
     }
   })
 
-  // Extension icon click → toggle panel in active tab
+  // Cached panel data — pre-fetched before panel injection
+  let cachedPanelData: {
+    session: Awaited<ReturnType<typeof getSession>>
+    status: Awaited<ReturnType<typeof checkStatus>> | null
+    chatId: string | null
+  } | null = null
+
+  // Extension icon click → pre-fetch data, then inject panel
   browser.action.onClicked.addListener(async (tab) => {
-    if (!tab.id) return
+    if (!tab.id || !tab.url) return
+
     try {
+      // Try sending toggle message first (panel already injected)
       await browser.tabs.sendMessage(tab.id, { type: 'togglePanel' })
     } catch {
-      // Content script not loaded on this page — ignore
+      // Panel not injected yet — pre-fetch data, then inject
+      try {
+        // Extract chatId from tab URL
+        const url = new URL(tab.url)
+        let chatId: string | null = null
+        if (url.hostname === 'claude.ai')
+          chatId = url.pathname.match(/\/chat\/([^/]+)/)?.[1] || null
+        else if (url.hostname === 'chatgpt.com')
+          chatId = url.pathname.match(/\/c\/([^/]+)/)?.[1] || null
+        else if (url.hostname === 'gemini.google.com')
+          chatId = url.pathname.match(/\/app\/([^/]+)/)?.[1] || null
+
+        // Pre-fetch session + status in parallel
+        const [session, status] = await Promise.all([
+          getSession(),
+          chatId ? checkStatus(chatId) : Promise.resolve(null),
+        ])
+
+        cachedPanelData = { session, status, chatId }
+
+        await browser.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content-scripts/panel.js'],
+        })
+      } catch {
+        browser.runtime.openOptionsPage()
+      }
     }
+  })
+
+  onMessage('getPanelData', () => {
+    const data = cachedPanelData
+    return data ?? { session: null, status: null, chatId: null }
   })
 
   onMessage('grantPermissions', async ({ data }) => {
