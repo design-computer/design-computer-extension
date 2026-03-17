@@ -52,13 +52,18 @@ export async function publish(
   return res.json() as Promise<PublishResponse>
 }
 
-export async function getDomains(): Promise<{ domain: string; type: 'burner' | 'vanity' }[]> {
+export async function getDomains(): Promise<{
+  domains: { domain: string; type: 'burner' | 'vanity' }[]
+  tier: string
+}> {
   const res = await fetch(`${WEB_URL}/api/domains`, {
     credentials: 'include',
   })
-  if (!res.ok) return []
-  const data = (await res.json()) as { domains: { domain: string; type: 'burner' | 'vanity' }[] }
-  return data.domains || []
+  if (!res.ok) return { domains: [], tier: 'free' }
+  return (await res.json()) as {
+    domains: { domain: string; type: 'burner' | 'vanity' }[]
+    tier: string
+  }
 }
 
 export async function getProjects(): Promise<{ id: string; slug: string; domain: string }[]> {
