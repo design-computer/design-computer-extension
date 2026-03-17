@@ -273,23 +273,31 @@ type SlugStatus = 'idle' | 'checking' | 'available' | 'taken'
 
 function LoggedInView({
   session,
+  existingStatus,
   onClose,
 }: {
   session: NonNullable<SessionData>
+  existingStatus?: { exists: boolean; slug?: string; domain?: string } | null
   onClose: () => void
 }) {
-  const [publishState, setPublishState] = useState<PublishState>('idle')
-  const [slug, setSlug] = useState('')
+  // Initialize from pre-fetched status
+  const hasExisting = existingStatus?.exists && existingStatus.slug
+  const initialDomain = (hasExisting && existingStatus.domain) || DEFAULT_DOMAIN
+
+  const [publishState, setPublishState] = useState<PublishState>(hasExisting ? 'published' : 'idle')
+  const [slug, setSlug] = useState(hasExisting ? existingStatus.slug! : '')
   const [slugStatus, setSlugStatus] = useState<SlugStatus>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [errorType, setErrorType] = useState<ErrorType>('generic')
-  const [publishedUrl, setPublishedUrl] = useState('')
+  const [publishedUrl, setPublishedUrl] = useState(
+    hasExisting ? `https://${existingStatus.slug}.${initialDomain}` : '',
+  )
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [showQr, setShowQr] = useState(false)
   const [copied, setCopied] = useState(false)
   const [domainOpen, setDomainOpen] = useState(false)
   const [domains, setDomains] = useState<DomainInfo[]>([{ domain: DEFAULT_DOMAIN, type: 'burner' }])
-  const [selectedDomain, setSelectedDomain] = useState(DEFAULT_DOMAIN)
+  const [selectedDomain, setSelectedDomain] = useState(initialDomain)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function getChatId(): string | undefined {
@@ -301,31 +309,15 @@ function LoggedInView({
   }
 
   useEffect(() => {
-    // Fetch domains
+    // Fetch domains only
     sendMessage('getDomains', undefined)
       .then((d) => {
         if (d.length > 0) {
           setDomains(d)
-          setSelectedDomain(d[0].domain)
+          if (!hasExisting) setSelectedDomain(d[0].domain)
         }
       })
       .catch(() => {})
-
-    // Check if current chat already has a published project → show published state
-    const chatId = getChatId()
-    if (chatId) {
-      sendMessage('checkStatus', { chatId })
-        .then((status) => {
-          if (status.exists && status.slug) {
-            setSlug(status.slug)
-            if (status.domain) setSelectedDomain(status.domain)
-            const domain = status.domain || DEFAULT_DOMAIN
-            setPublishedUrl(`https://${status.slug}.${domain}`)
-            setPublishState('published')
-          }
-        })
-        .catch(() => {})
-    }
   }, [])
 
   function classifyError(msg: string): ErrorType {
@@ -690,37 +682,29 @@ function LoggedInView({
 // ── Panel ────────────────────────────────────────────────────────────────────
 
 function Panel({ onClose }: { onClose: () => void }) {
-  const [session, setSession] = useState<SessionData | undefined>(undefined)
-  const [loading, setLoading] = useState(true)
+  const [panelData, setPanelData] = useState<{
+    session: SessionData
+    status: { exists: boolean; slug?: string; domain?: string } | null
+    chatId: string | null
+    ready: boolean
+  }>({ session: undefined, status: null, chatId: null, ready: false })
+
   useEffect(() => {
-    sendMessage('getSession', undefined)
+    sendMessage('getPanelData', undefined)
       .then((data) => {
-        setSession(data)
-        setLoading(false)
+        setPanelData({ ...data, ready: true })
       })
       .catch(() => {
-        setSession(null)
-        setLoading(false)
+        setPanelData({ session: null, status: null, chatId: null, ready: true })
       })
   }, [])
 
-  if (loading) {
-    return (
-      <div className="relative m-4 w-[280px] bg-white rounded-[20px] shadow-[0_8px_32px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] p-1.5 flex flex-col gap-3 overflow-hidden font-sans">
-        <div className="flex items-center p-1.5">
-          <div className="w-6 h-6 rounded-[20px] bg-gradient-to-b from-white to-[#999]" />
-        </div>
-        <div className="flex items-center justify-center py-3 px-1.5">
-          <p className="text-sm font-medium text-muted tracking-[-0.01em] text-center">
-            Loading...
-          </p>
-        </div>
-      </div>
-    )
-  }
+  if (!panelData.ready) return null
 
-  if (!session) return <LoggedOutView onClose={onClose} />
-  return <LoggedInView session={session} onClose={onClose} />
+  if (!panelData.session) return <LoggedOutView onClose={onClose} />
+  return (
+    <LoggedInView session={panelData.session} existingStatus={panelData.status} onClose={onClose} />
+  )
 }
 
 // ── Content Script ───────────────────────────────────────────────────────────
