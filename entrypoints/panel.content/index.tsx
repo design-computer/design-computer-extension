@@ -621,10 +621,11 @@ function LoggedInView({
                       <div
                         key={d.domain}
                         onClick={() => {
+                          if (d.type === 'vanity' && userTier !== 'pro') return
                           setSelectedDomain(d.domain)
                           setDomainOpen(false)
                         }}
-                        className={`px-2.5 py-1.5 rounded-lg cursor-pointer text-[13px] font-medium font-sans leading-5 whitespace-nowrap flex items-center justify-between ${selectedDomain === d.domain ? 'bg-surface text-black' : d.type === 'vanity' && userTier !== 'pro' ? 'text-[#999] hover:bg-[#f8f8f8]' : 'text-black hover:bg-[#f8f8f8]'}`}
+                        className={`px-2.5 py-1.5 rounded-lg text-[13px] font-medium font-sans leading-5 whitespace-nowrap flex items-center justify-between ${d.type === 'vanity' && userTier !== 'pro' ? 'text-[#999] cursor-default' : selectedDomain === d.domain ? 'bg-surface text-black cursor-pointer' : 'text-black hover:bg-[#f8f8f8] cursor-pointer'}`}
                       >
                         <span>{d.domain}</span>
                         {d.type === 'vanity' && userTier !== 'pro' && (
