@@ -290,6 +290,7 @@ function LoggedInView({
   const [domainOpen, setDomainOpen] = useState(false)
   const [domains, setDomains] = useState<DomainInfo[]>([{ domain: DEFAULT_DOMAIN, type: 'burner' }])
   const [selectedDomain, setSelectedDomain] = useState(DEFAULT_DOMAIN)
+  const [userTier, setUserTier] = useState('free')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function getChatId(): string | undefined {
@@ -303,11 +304,12 @@ function LoggedInView({
   useEffect(() => {
     // Fetch domains
     sendMessage('getDomains', undefined)
-      .then((d) => {
-        if (d.length > 0) {
-          setDomains(d)
-          setSelectedDomain(d[0].domain)
+      .then((result) => {
+        if (result.domains.length > 0) {
+          setDomains(result.domains)
+          setSelectedDomain(result.domains[0].domain)
         }
+        setUserTier(result.tier)
       })
       .catch(() => {})
 
@@ -622,10 +624,10 @@ function LoggedInView({
                           setSelectedDomain(d.domain)
                           setDomainOpen(false)
                         }}
-                        className={`px-2.5 py-1.5 rounded-lg cursor-pointer text-[13px] font-medium font-sans leading-5 whitespace-nowrap flex items-center justify-between ${selectedDomain === d.domain ? 'bg-surface text-black' : d.type === 'vanity' ? 'text-[#999] hover:bg-[#f8f8f8]' : 'text-black hover:bg-[#f8f8f8]'}`}
+                        className={`px-2.5 py-1.5 rounded-lg cursor-pointer text-[13px] font-medium font-sans leading-5 whitespace-nowrap flex items-center justify-between ${selectedDomain === d.domain ? 'bg-surface text-black' : d.type === 'vanity' && userTier !== 'pro' ? 'text-[#999] hover:bg-[#f8f8f8]' : 'text-black hover:bg-[#f8f8f8]'}`}
                       >
                         <span>{d.domain}</span>
-                        {d.type === 'vanity' && (
+                        {d.type === 'vanity' && userTier !== 'pro' && (
                           <span className="text-[13px] font-medium text-[#459ef2]">Pro</span>
                         )}
                       </div>

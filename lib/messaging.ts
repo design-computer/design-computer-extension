@@ -52,6 +52,6 @@ export const { sendMessage, onMessage } = defineExtensionMessaging<{
   checkSlug(data: CheckSlugData): CheckSlugResult
   getSession(data: void): SessionData
   getProjects(data: void): ProjectItem[]
-  getDomains(data: void): { domain: string; type: 'burner' | 'vanity' }[]
+  getDomains(data: void): { domains: { domain: string; type: 'burner' | 'vanity' }[]; tier: string }
   grantPermissions(data: { origins: string[] }): boolean
 }>()
