@@ -622,13 +622,11 @@ function LoggedInView({
                           setSelectedDomain(d.domain)
                           setDomainOpen(false)
                         }}
-                        className={`px-2.5 py-1.5 rounded-lg cursor-pointer text-[13px] font-medium font-sans leading-5 whitespace-nowrap flex items-center gap-2 ${selectedDomain === d.domain ? 'bg-surface text-black' : 'text-[#666] hover:bg-[#f8f8f8]'}`}
+                        className={`px-2.5 py-1.5 rounded-lg cursor-pointer text-[13px] font-medium font-sans leading-5 whitespace-nowrap flex items-center justify-between ${selectedDomain === d.domain ? 'bg-surface text-black' : d.type === 'vanity' ? 'text-[#999] hover:bg-[#f8f8f8]' : 'text-black hover:bg-[#f8f8f8]'}`}
                       >
                         <span>{d.domain}</span>
                         {d.type === 'vanity' && (
-                          <span className="text-[10px] font-medium text-[#459ef2] bg-[#459ef2]/10 px-1.5 py-0.5 rounded-full leading-none">
-                            PRO
-                          </span>
+                          <span className="text-[13px] font-medium text-[#459ef2]">Pro</span>
                         )}
                       </div>
                     ))}
