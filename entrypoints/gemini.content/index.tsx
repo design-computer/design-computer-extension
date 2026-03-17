@@ -8,6 +8,7 @@ const appPattern = new MatchPattern('*://gemini.google.com/app/*')
 export default defineContentScript({
   matches: ['*://gemini.google.com/*'],
   cssInjectionMode: 'ui',
+  registration: 'runtime',
 
   async main(ctx) {
     // Fetch session from web app via background
