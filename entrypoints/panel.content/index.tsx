@@ -265,6 +265,153 @@ function LoggedOutView({ onClose }: { onClose: () => void }) {
   )
 }
 
+// ── Platform Icons ───────────────────────────────────────────────────────────
+
+const GeminiColorIcon = () => (
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="shrink-0 rounded-[20px]">
+    <rect width="32" height="32" rx="8" fill="white" />
+    <path
+      d="M16 4C16 10.627 10.627 16 4 16C10.627 16 16 21.373 16 28C16 21.373 21.373 16 28 16C21.373 16 16 10.627 16 4Z"
+      fill="url(#gemini_grad)"
+    />
+    <defs>
+      <linearGradient id="gemini_grad" x1="4" y1="16" x2="28" y2="16">
+        <stop stopColor="#4285F4" />
+        <stop offset="1" stopColor="#886FBF" />
+      </linearGradient>
+    </defs>
+  </svg>
+)
+
+const ChatGPTColorIcon = () => (
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="shrink-0 rounded-[20px]">
+    <rect width="32" height="32" rx="8" fill="white" />
+    <circle cx="16" cy="16" r="10" fill="#10a37f" />
+    <path
+      d="M16 9.5c-1.5 0-2.8.8-3.5 2l-.5.8-.8-.5C10 11 8.5 11.2 7.7 12.5c-.8 1.3-.3 3 1 3.8l.8.5-.5.8c-.7 1.2-.5 2.8.7 3.7 1.2.9 2.8.5 3.7-.7l.5-.8.8.5c1.3.8 3 .3 3.8-1s.3-3-1-3.8l-.8-.5.5-.8c.7-1.2.5-2.8-.7-3.7A2.7 2.7 0 0016 9.5z"
+      fill="white"
+      fillOpacity="0.5"
+    />
+  </svg>
+)
+
+const ClaudeColorIcon = () => (
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="shrink-0 rounded-[20px]">
+    <rect width="32" height="32" rx="8" fill="white" />
+    <path d="M19.2 10L16 21.5 12.8 10h-2.4L14.8 23h2.4L21.6 10h-2.4z" fill="#D97757" />
+  </svg>
+)
+
+const DesignComputerColorIcon = () => (
+  <div className="w-8 h-8 rounded-[20px] bg-gradient-to-b from-white to-[#999] shrink-0" />
+)
+
+// ── Permission Modal ─────────────────────────────────────────────────────────
+
+interface SiteToggle {
+  id: string
+  name: string
+  description: string
+  icon: React.ReactNode
+  enabled: boolean
+}
+
+function PermissionView({ onComplete }: { onComplete: () => void }) {
+  const [sites, setSites] = useState<SiteToggle[]>([
+    {
+      id: 'gemini',
+      name: 'Google Gemini',
+      description: 'Publish code from Gemini',
+      icon: <GeminiColorIcon />,
+      enabled: true,
+    },
+    {
+      id: 'chatgpt',
+      name: 'ChatGPT',
+      description: 'Publish code from ChatGPT',
+      icon: <ChatGPTColorIcon />,
+      enabled: true,
+    },
+    {
+      id: 'claude',
+      name: 'Claude',
+      description: 'Publish artifacts from Claude',
+      icon: <ClaudeColorIcon />,
+      enabled: true,
+    },
+    {
+      id: 'api',
+      name: 'design.computer',
+      description: 'Required to publish your code.',
+      icon: <DesignComputerColorIcon />,
+      enabled: true,
+    },
+  ])
+
+  function toggleSite(id: string) {
+    // Don't allow disabling design.computer (required)
+    if (id === 'api') return
+    setSites((prev) => prev.map((s) => (s.id === id ? { ...s, enabled: !s.enabled } : s)))
+  }
+
+  async function handleAllowAll() {
+    onComplete()
+  }
+
+  return (
+    <div className="relative m-4 w-[350px] bg-white rounded-[20px] shadow-[0_8px_32px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] p-1.5 flex flex-col gap-3 overflow-hidden font-sans">
+      {/* Header */}
+      <div className="flex flex-col gap-2 p-3">
+        <h2 className="text-lg font-medium text-black tracking-[-0.01em] leading-6">
+          Enable Publishing
+        </h2>
+        <p className="text-base font-medium text-muted tracking-[-0.01em] leading-[22px]">
+          We only access the code you choose to share, the rest is private.
+        </p>
+        {/* Allow All button */}
+        <button
+          className="w-full bg-black text-white border-none rounded-[14px] py-2 px-4 flex items-center justify-center gap-3 cursor-pointer"
+          onClick={handleAllowAll}
+        >
+          <span className="text-sm font-medium text-muted tracking-[-0.01em]">Recommended</span>
+          <span className="text-sm font-medium text-white tracking-[-0.01em]">Allow All Sites</span>
+        </button>
+      </div>
+
+      {/* Site list */}
+      <div className="flex flex-col gap-1.5">
+        {sites.map((site) => (
+          <div
+            key={site.id}
+            className="flex items-center gap-2 bg-surface rounded-[14px] px-3 py-2"
+          >
+            {site.icon}
+            <div className="flex-1 min-w-0">
+              <p className="text-base font-medium text-black tracking-[-0.01em] leading-6">
+                {site.name}
+              </p>
+              <p className="text-sm font-medium text-muted tracking-[-0.01em] leading-[18px]">
+                {site.description}
+              </p>
+            </div>
+            {/* Toggle */}
+            <button
+              className="shrink-0 w-[46px] h-[26px] rounded-full p-0.5 border-none cursor-pointer transition-colors"
+              style={{ background: site.enabled ? '#000' : '#ccc' }}
+              onClick={() => toggleSite(site.id)}
+            >
+              <div
+                className="w-[22px] h-[22px] rounded-full bg-white transition-transform"
+                style={{ transform: site.enabled ? 'translateX(20px)' : 'translateX(0)' }}
+              />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Logged In ────────────────────────────────────────────────────────────────
 
 type PublishState = 'idle' | 'publishing' | 'published' | 'error'
@@ -693,8 +840,13 @@ function LoggedInView({
 function Panel({ onClose }: { onClose: () => void }) {
   const [session, setSession] = useState<SessionData | undefined>(undefined)
   const [loading, setLoading] = useState(true)
+  const [permissionsGranted, setPermissionsGranted] = useState<boolean | null>(null)
 
   useEffect(() => {
+    // Check if permissions have been acknowledged
+    const stored = localStorage.getItem('dc_permissions_granted')
+    setPermissionsGranted(stored === 'true')
+
     sendMessage('getSession', undefined)
       .then((data) => {
         setSession(data)
@@ -722,6 +874,19 @@ function Panel({ onClose }: { onClose: () => void }) {
   }
 
   if (!session) return <LoggedOutView onClose={onClose} />
+
+  // Show permission modal on first use after login
+  if (permissionsGranted === false) {
+    return (
+      <PermissionView
+        onComplete={() => {
+          localStorage.setItem('dc_permissions_granted', 'true')
+          setPermissionsGranted(true)
+        }}
+      />
+    )
+  }
+
   return <LoggedInView session={session} onClose={onClose} />
 }
 
