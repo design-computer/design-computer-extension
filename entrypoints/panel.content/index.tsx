@@ -355,6 +355,23 @@ function PermissionView({ onComplete }: { onComplete: () => void }) {
   }
 
   async function handleAllowAll() {
+    const enabledOrigins = sites
+      .filter((s) => s.enabled)
+      .map((s) => {
+        if (s.id === 'gemini') return '*://gemini.google.com/*'
+        if (s.id === 'chatgpt') return '*://chatgpt.com/*'
+        if (s.id === 'claude') return '*://claude.ai/*'
+        return null
+      })
+      .filter(Boolean) as string[]
+
+    if (enabledOrigins.length > 0) {
+      try {
+        await sendMessage('grantPermissions', { origins: enabledOrigins })
+      } catch {
+        /* ignore */
+      }
+    }
     onComplete()
   }
 
@@ -843,9 +860,14 @@ function Panel({ onClose }: { onClose: () => void }) {
   const [permissionsGranted, setPermissionsGranted] = useState<boolean | null>(null)
 
   useEffect(() => {
-    // Check if permissions have been acknowledged
-    const stored = localStorage.getItem('dc_permissions_granted')
-    setPermissionsGranted(stored === 'true')
+    // Check if at least one AI site permission is granted
+    Promise.all([
+      browser.permissions.contains({ origins: ['*://claude.ai/*'] }),
+      browser.permissions.contains({ origins: ['*://chatgpt.com/*'] }),
+      browser.permissions.contains({ origins: ['*://gemini.google.com/*'] }),
+    ])
+      .then(([claude, chatgpt, gemini]) => setPermissionsGranted(claude || chatgpt || gemini))
+      .catch(() => setPermissionsGranted(false))
 
     sendMessage('getSession', undefined)
       .then((data) => {
@@ -877,14 +899,7 @@ function Panel({ onClose }: { onClose: () => void }) {
 
   // Show permission modal on first use after login
   if (permissionsGranted === false) {
-    return (
-      <PermissionView
-        onComplete={() => {
-          localStorage.setItem('dc_permissions_granted', 'true')
-          setPermissionsGranted(true)
-        }}
-      />
-    )
+    return <PermissionView onComplete={() => setPermissionsGranted(true)} />
   }
 
   return <LoggedInView session={session} onClose={onClose} />

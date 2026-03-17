@@ -6,6 +6,7 @@ import { sendMessage } from '../../lib/messaging'
 export default defineContentScript({
   matches: ['*://chatgpt.com/*'],
   cssInjectionMode: 'ui',
+  registration: 'runtime',
 
   async main(ctx) {
     console.log('[design.computer] content script active on ChatGPT')

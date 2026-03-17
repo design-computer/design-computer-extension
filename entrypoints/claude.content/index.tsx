@@ -6,6 +6,7 @@ import { sendMessage } from '../../lib/messaging'
 export default defineContentScript({
   matches: ['*://claude.ai/*'],
   cssInjectionMode: 'ui',
+  registration: 'runtime',
 
   async main(ctx) {
     // Fetch session from web app via background
