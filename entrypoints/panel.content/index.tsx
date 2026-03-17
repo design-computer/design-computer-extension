@@ -290,7 +290,6 @@ function LoggedInView({
   const [domainOpen, setDomainOpen] = useState(false)
   const [domains, setDomains] = useState<DomainInfo[]>([{ domain: DEFAULT_DOMAIN, type: 'burner' }])
   const [selectedDomain, setSelectedDomain] = useState(DEFAULT_DOMAIN)
-  const [isUpdate, setIsUpdate] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function getChatId(): string | undefined {
@@ -312,15 +311,17 @@ function LoggedInView({
       })
       .catch(() => {})
 
-    // Check if current chat already has a published project
+    // Check if current chat already has a published project → show published state
     const chatId = getChatId()
     if (chatId) {
       sendMessage('checkStatus', { chatId })
         .then((status) => {
           if (status.exists && status.slug) {
             setSlug(status.slug)
-            setIsUpdate(true)
             if (status.domain) setSelectedDomain(status.domain)
+            const domain = status.domain || DEFAULT_DOMAIN
+            setPublishedUrl(`https://${status.slug}.${domain}`)
+            setPublishState('published')
           }
         })
         .catch(() => {})
@@ -674,8 +675,6 @@ function LoggedInView({
                     <SpinnerIcon spin />
                     <span>Working on it</span>
                   </span>
-                ) : isUpdate ? (
-                  'Update'
                 ) : (
                   'Publish'
                 )}
@@ -729,6 +728,7 @@ function Panel({ onClose }: { onClose: () => void }) {
 export default defineContentScript({
   matches: ['*://claude.ai/*', '*://chatgpt.com/*', '*://gemini.google.com/*'],
   cssInjectionMode: 'manual',
+  registration: 'runtime',
 
   async main() {
     const { createIsolatedElement } = await import('@webext-core/isolated-element')
