@@ -1,6 +1,8 @@
 import { defineConfig, type WxtViteConfig } from 'wxt'
 import tailwindcss from '@tailwindcss/vite'
 
+const isDev = process.env.NODE_ENV === 'development'
+
 const AI_ORIGINS = ['*://claude.ai/*', '*://chatgpt.com/*', '*://gemini.google.com/*']
 
 // See https://wxt.dev/api/config.html
@@ -21,8 +23,14 @@ export default defineConfig({
       // They should only be in optional_host_permissions
       if (manifest.host_permissions) {
         manifest.host_permissions = manifest.host_permissions.filter(
-          (p: string) => !AI_ORIGINS.includes(p),
+          (p: string) =>
+            !AI_ORIGINS.includes(p) &&
+            p !== 'https://my.design.computer/*' &&
+            (!isDev ? !p.includes('localhost') : true),
         )
+        if (manifest.host_permissions.length === 0) {
+          delete manifest.host_permissions
+        }
       }
     },
   },
@@ -31,16 +39,17 @@ export default defineConfig({
     key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs17OkA6ErSJH3sZntU9MdaqF3o1CgbGKUbOUnCGB7DcY0q//JjtHXgfH/pNxOIF1yloA4ctbvWaSdc1vTJkZKJ4H0N2y9XIKW5ow8b0YcqdxDVp4k0XpUtGZKZB4JIU6usSutWxDXXlieGOYasbLMrNDffktuO9a6cHYcV2C0MRl0yrTt74YnlKYjS0mYid/QtTPCAdJ8R8l9UnQx/5MgqjrbG5cPlIMtDnmr9BwvgGxQigCoy5K36E8nv9Cgu7h6N/QM1us9NIUnjStRLcMffYeE0siGHlHefuoga5RLhBCKxG8uqp3/LHTXadGkz9mRPBFOkTzxKpTapCocM8v5QIDAQAB',
     action: {},
     permissions: ['storage', 'scripting'],
-    optional_host_permissions: AI_ORIGINS,
+    optional_host_permissions: [...AI_ORIGINS, 'https://my.design.computer/*'],
     web_accessible_resources: [
       {
         resources: ['fonts/Switzer-Variable.woff2', 'content-scripts/panel.css'],
         matches: AI_ORIGINS,
       },
     ],
-    host_permissions: ['https://my.design.computer/*', 'http://localhost:3000/*'],
     externally_connectable: {
-      matches: ['https://my.design.computer/*', 'http://localhost:3000/*'],
+      matches: isDev
+        ? ['https://my.design.computer/*', 'http://localhost:3000/*']
+        : ['https://my.design.computer/*'],
     },
   },
 })
