@@ -7,6 +7,13 @@ const AI_ORIGINS = ['*://claude.ai/*', '*://chatgpt.com/*', '*://gemini.google.c
 export default defineBackground(() => {
   console.log('[design.computer] background active', { id: browser.runtime.id })
 
+  // Open options page on first install
+  browser.runtime.onInstalled.addListener((details) => {
+    if (details.reason === 'install') {
+      browser.runtime.openOptionsPage()
+    }
+  })
+
   // On startup, register content scripts for any already-granted permissions
   registerGrantedContentScripts()
 
@@ -17,13 +24,62 @@ export default defineBackground(() => {
     }
   })
 
-  // Extension icon click → toggle panel in active tab
+  // Extension icon click → open options if no permissions granted, otherwise toggle panel
   browser.action.onClicked.addListener(async (tab) => {
+    const hasAny = await hasAnyPermission()
+    if (!hasAny) {
+      browser.runtime.openOptionsPage()
+      return
+    }
     if (!tab.id) return
     try {
       await browser.tabs.sendMessage(tab.id, { type: 'togglePanel' })
     } catch {
-      // Content script not loaded on this page — ignore
+      // Panel not injected yet — inject it
+      try {
+        // Inject panel
+        await browser.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content-scripts/panel.js'],
+        })
+
+        // Also inject the publish button script for this platform if not already active
+        if (tab.url) {
+          const url = new URL(tab.url)
+          let platformScript: string | null = null
+          let platformCss: string | null = null
+          if (url.hostname === 'chatgpt.com') {
+            platformScript = 'content-scripts/chatgpt.js'
+            platformCss = 'content-scripts/chatgpt.css'
+          } else if (url.hostname === 'claude.ai') {
+            platformScript = 'content-scripts/claude.js'
+            platformCss = 'content-scripts/claude.css'
+          } else if (url.hostname.endsWith('gemini.google.com')) {
+            platformScript = 'content-scripts/gemini.js'
+            platformCss = 'content-scripts/gemini.css'
+          }
+
+          if (platformScript) {
+            try {
+              if (platformCss) {
+                await browser.scripting.insertCSS({
+                  target: { tabId: tab.id },
+                  files: [platformCss],
+                })
+              }
+              await browser.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: [platformScript],
+              })
+            } catch {
+              /* already injected or no permission */
+            }
+          }
+        }
+      } catch {
+        // No permission for this site — open options page
+        browser.runtime.openOptionsPage()
+      }
     }
   })
 
@@ -66,6 +122,14 @@ export default defineBackground(() => {
     return session
   })
 })
+
+async function hasAnyPermission(): Promise<boolean> {
+  for (const origin of AI_ORIGINS) {
+    const has = await browser.permissions.contains({ origins: [origin] })
+    if (has) return true
+  }
+  return false
+}
 
 async function registerGrantedContentScripts() {
   for (const origin of AI_ORIGINS) {
