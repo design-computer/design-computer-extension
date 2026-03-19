@@ -187,9 +187,29 @@ async function registerGrantedContentScripts() {
     }
   }
 
-  // Log all registered scripts
-  try {
-    const all = await browser.scripting.getRegisteredContentScripts()
-    console.log('[design.computer] all registered scripts:', JSON.stringify(all.map((s) => s.id)))
-  } catch {}
+  // Inject into already-open tabs (no refresh needed)
+  const hostMap: Record<string, { js: string; css: string }> = {
+    'claude.ai': { js: 'content-scripts/claude.js', css: 'content-scripts/claude.css' },
+    'chatgpt.com': { js: 'content-scripts/chatgpt.js', css: 'content-scripts/chatgpt.css' },
+    'gemini.google.com': { js: 'content-scripts/gemini.js', css: 'content-scripts/gemini.css' },
+  }
+
+  for (const [host, files] of Object.entries(hostMap)) {
+    const has = await browser.permissions.contains({ origins: [`*://${host}/*`] })
+    if (!has) continue
+    try {
+      const tabs = await browser.tabs.query({ url: `*://${host}/*` })
+      for (const tab of tabs) {
+        if (!tab.id) continue
+        try {
+          await browser.scripting.insertCSS({ target: { tabId: tab.id }, files: [files.css] })
+          await browser.scripting.executeScript({ target: { tabId: tab.id }, files: [files.js] })
+        } catch {
+          /* tab might be loading or restricted */
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
 }
