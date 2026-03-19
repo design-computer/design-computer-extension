@@ -316,6 +316,14 @@ function LoggedInView({
       })
       .catch(() => {})
 
+    // Check availability for initial slug (from publish button)
+    if (slug.length >= 2) {
+      setSlugStatus('checking')
+      sendMessage('checkSlug', { slug })
+        .then((r) => setSlugStatus(r.available ? 'available' : 'taken'))
+        .catch(() => setSlugStatus('idle'))
+    }
+
     // Check if current chat already has a published project → show published state
     const chatId = getChatId()
     if (chatId) {
