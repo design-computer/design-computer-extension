@@ -32,7 +32,7 @@ export default defineBackground(() => {
     }
   })
 
-  // Extension icon click → open options if no permissions granted, otherwise toggle panel
+  // Extension icon click
   browser.action.onClicked.addListener(async (tab) => {
     const hasAny = await hasAnyPermission()
     if (!hasAny) {
@@ -41,38 +41,34 @@ export default defineBackground(() => {
     }
     if (!tab.id) return
     try {
-      await browser.tabs.sendMessage(tab.id, { type: '__dc_togglePanel' })
+      await sendMessage('togglePanel', undefined, tab.id)
     } catch {
       try {
         await browser.scripting.executeScript({
           target: { tabId: tab.id },
           files: ['content-scripts/panel.js'],
         })
-        if (tab.url) {
-          await injectPlatformScripts(tab.id, tab.url)
-        }
+        if (tab.url) await injectPlatformScripts(tab.id, tab.url)
       } catch {
         browser.runtime.openOptionsPage()
       }
     }
   })
 
-  // ── onMessage handlers (all via @webext-core/messaging) ──
+  // ── onMessage handlers ──
 
   onMessage('openPanelWithCode', async ({ data, sender }) => {
     const tabId = sender.tab?.id
     if (!tabId) return
     try {
-      await browser.tabs.sendMessage(tabId, { type: '__dc_openPanelWithCode', ...data })
+      await sendMessage('openPanelWithCode', data, tabId)
     } catch {
       try {
         await browser.scripting.executeScript({
           target: { tabId },
           files: ['content-scripts/panel.js'],
         })
-        setTimeout(() => {
-          browser.tabs.sendMessage(tabId, { type: '__dc_openPanelWithCode', ...data })
-        }, 300)
+        setTimeout(() => sendMessage('openPanelWithCode', data, tabId), 300)
       } catch {
         browser.runtime.openOptionsPage()
       }
@@ -82,18 +78,15 @@ export default defineBackground(() => {
   onMessage('openPanelWithSuccess', async ({ data, sender }) => {
     const tabId = sender.tab?.id
     if (!tabId) return
-    const successData = { type: '__dc_openPanelWithSuccess', ...data }
     try {
-      await browser.tabs.sendMessage(tabId, successData)
+      await sendMessage('openPanelWithSuccess', data, tabId)
     } catch {
       try {
         await browser.scripting.executeScript({
           target: { tabId },
           files: ['content-scripts/panel.js'],
         })
-        setTimeout(() => {
-          browser.tabs.sendMessage(tabId, successData)
-        }, 300)
+        setTimeout(() => sendMessage('openPanelWithSuccess', data, tabId), 300)
       } catch {
         browser.runtime.openOptionsPage()
       }
@@ -107,9 +100,7 @@ export default defineBackground(() => {
   onMessage('grantPermissions', async ({ data }) => {
     try {
       const granted = await browser.permissions.request({ origins: data.origins })
-      if (granted) {
-        await registerGrantedContentScripts()
-      }
+      if (granted) await registerGrantedContentScripts()
       return granted
     } catch {
       return false
@@ -121,66 +112,53 @@ export default defineBackground(() => {
     return publish(html, data.chatId, data.chatUrl, data.slug, data.domain)
   })
 
-  onMessage('checkStatus', async ({ data }) => {
-    return checkStatus(data.chatId)
-  })
-
-  onMessage('checkSlug', async ({ data }) => {
-    return checkSlug(data.slug)
-  })
-
-  onMessage('getProjects', async () => {
-    return getProjects()
-  })
-
-  onMessage('getDomains', async () => {
-    return getDomains()
-  })
-
-  onMessage('getSession', async () => {
-    return getSession()
-  })
-
+  onMessage('checkStatus', async ({ data }) => checkStatus(data.chatId))
+  onMessage('checkSlug', async ({ data }) => checkSlug(data.slug))
+  onMessage('getProjects', async () => getProjects())
+  onMessage('getDomains', async () => getDomains())
+  onMessage('getSession', async () => getSession())
   onMessage('logout', async () => {
     await logout()
   })
+
+  // togglePanel is handled by the panel content script, not background
+  // But we need to register it so the library doesn't complain
+  onMessage('togglePanel', async () => {})
 })
 
 async function hasAnyPermission(): Promise<boolean> {
   for (const origin of AI_ORIGINS) {
-    const has = await browser.permissions.contains({ origins: [origin] })
-    if (has) return true
+    if (await browser.permissions.contains({ origins: [origin] })) return true
   }
   return false
 }
 
 async function injectPlatformScripts(tabId: number, tabUrl: string) {
   const url = new URL(tabUrl)
-  let platformScript: string | null = null
-  let platformCss: string | null = null
+  let js: string | null = null
+  let css: string | null = null
   if (url.hostname === 'chatgpt.com') {
-    platformScript = 'content-scripts/chatgpt.js'
-    platformCss = 'content-scripts/chatgpt.css'
+    js = 'content-scripts/chatgpt.js'
+    css = 'content-scripts/chatgpt.css'
   } else if (url.hostname === 'claude.ai') {
-    platformScript = 'content-scripts/claude.js'
-    platformCss = 'content-scripts/claude.css'
+    js = 'content-scripts/claude.js'
+    css = 'content-scripts/claude.css'
   } else if (url.hostname.endsWith('gemini.google.com')) {
-    platformScript = 'content-scripts/gemini.js'
-    platformCss = 'content-scripts/gemini.css'
+    js = 'content-scripts/gemini.js'
+    css = 'content-scripts/gemini.css'
   }
-  if (!platformScript) return
+  if (!js) return
   try {
-    if (platformCss) await browser.scripting.insertCSS({ target: { tabId }, files: [platformCss] })
-    await browser.scripting.executeScript({ target: { tabId }, files: [platformScript] })
+    if (css) await browser.scripting.insertCSS({ target: { tabId }, files: [css] })
+    await browser.scripting.executeScript({ target: { tabId }, files: [js] })
   } catch {
-    /* already injected or no permission */
+    /* ignore */
   }
 }
 
 async function registerGrantedContentScripts() {
   for (const origin of AI_ORIGINS) {
-    const has = await browser.permissions.contains({ origins: [origin] })
-    if (!has) continue
+    if (!(await browser.permissions.contains({ origins: [origin] }))) continue
 
     let id: string | null = null
     if (origin.includes('claude.ai')) id = 'claude'
@@ -218,8 +196,7 @@ async function registerGrantedContentScripts() {
   }
 
   for (const [host, files] of Object.entries(hostMap)) {
-    const has = await browser.permissions.contains({ origins: [`*://${host}/*`] })
-    if (!has) continue
+    if (!(await browser.permissions.contains({ origins: [`*://${host}/*`] }))) continue
     try {
       const tabs = await browser.tabs.query({ url: `*://${host}/*` })
       for (const tab of tabs) {

@@ -71,4 +71,5 @@ export const { sendMessage, onMessage } = defineExtensionMessaging<{
   openPanelWithCode(data: CodeData): void
   openPanelWithSuccess(data: SuccessData): void
   registerContentScripts(data: void): void
+  togglePanel(data: void): void
 }>()

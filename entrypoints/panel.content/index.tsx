@@ -1,7 +1,7 @@
 import './style.css'
 import ReactDOM from 'react-dom/client'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { sendMessage } from '../../lib/messaging'
+import { sendMessage, onMessage } from '../../lib/messaging'
 import type { SessionData } from '../../lib/messaging'
 import { motion, AnimatePresence } from 'framer-motion'
 import confetti from 'canvas-confetti'
@@ -964,33 +964,24 @@ export default defineContentScript({
     })
     urlObserver.observe(document.body, { childList: true, subtree: true })
 
-    browser.runtime.onMessage.addListener((message: unknown) => {
-      if (!message || typeof message !== 'object' || !('type' in message)) return
-      const msg = message as {
-        type: string
-        code?: string
-        language?: string
-        chatId?: string
-        chatUrl?: string
-        slug?: string
-        url?: string
-      }
+    onMessage('togglePanel', () => {
+      toggle()
+    })
 
-      if (msg.type === '__dc_togglePanel') {
-        toggle()
-      } else if (msg.type === '__dc_openPanelWithCode') {
-        currentCodeData = {
-          code: msg.code || '',
-          language: msg.language || 'html',
-          chatId: msg.chatId,
-          chatUrl: msg.chatUrl,
-        }
-        if (parentEl) hide()
-        show(currentCodeData)
-      } else if (msg.type === '__dc_openPanelWithSuccess') {
-        if (parentEl) hide()
-        showSuccess(msg.slug || '', msg.url || '', (msg as any).session)
+    onMessage('openPanelWithCode', ({ data }) => {
+      currentCodeData = {
+        code: data.code,
+        language: data.language,
+        chatId: data.chatId,
+        chatUrl: data.chatUrl,
       }
+      if (parentEl) hide()
+      show(currentCodeData)
+    })
+
+    onMessage('openPanelWithSuccess', ({ data }) => {
+      if (parentEl) hide()
+      showSuccess(data.slug, data.url, data.session)
     })
   },
 })
