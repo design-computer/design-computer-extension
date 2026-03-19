@@ -127,9 +127,6 @@ export default defineContentScript({
               hasExisting={hasExisting}
               getCode={() => block.querySelector('.cm-content')?.textContent ?? ''}
               getLanguage={() => detectLanguage(block)}
-              onPublished={() => {
-                statusPromise = Promise.resolve(true)
-              }}
             />,
           )
           return root

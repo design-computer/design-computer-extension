@@ -24,8 +24,55 @@ export default defineBackground(() => {
     }
   })
 
-  // Register content scripts when options page grants permissions
-  browser.runtime.onMessage.addListener((message) => {
+  // Cached code data from publish button click
+  let pendingCodeData: {
+    code: string
+    language: string
+    chatId?: string
+    chatUrl?: string
+  } | null = null
+
+  // Handle messages from content scripts and options page
+  browser.runtime.onMessage.addListener((message, sender) => {
+    if (message?.type === 'openPanelWithCode' && sender.tab?.id) {
+      // Store code data, then inject/toggle panel
+      pendingCodeData = {
+        code: message.code,
+        language: message.language,
+        chatId: message.chatId,
+        chatUrl: message.chatUrl,
+      }
+      // Inject panel in the sender's tab
+      ;(async () => {
+        const tabId = sender.tab!.id!
+        try {
+          await browser.tabs.sendMessage(tabId, { type: 'openPanelWithCode', ...pendingCodeData })
+        } catch {
+          // Panel not injected yet
+          try {
+            await browser.scripting.executeScript({
+              target: { tabId },
+              files: ['content-scripts/panel.js'],
+            })
+            // Wait a bit for panel to initialize, then send data
+            setTimeout(() => {
+              browser.tabs.sendMessage(tabId, { type: 'openPanelWithCode', ...pendingCodeData })
+            }, 300)
+          } catch {
+            browser.runtime.openOptionsPage()
+          }
+        }
+      })()
+      return
+    }
+
+    if (message?.type === 'getPendingCode') {
+      // Panel asks for pending code data
+      const data = pendingCodeData
+      pendingCodeData = null
+      return data
+    }
+
     if (message?.type === 'registerContentScripts') {
       registerGrantedContentScripts()
     }

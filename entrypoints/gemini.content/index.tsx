@@ -77,9 +77,6 @@ export default defineContentScript({
               hasExisting={hasExisting}
               getCode={() => codeEl.textContent ?? ''}
               getLanguage={() => detectLanguage(codeContainer)}
-              onPublished={() => {
-                statusPromise = Promise.resolve(true)
-              }}
             />,
           )
           return root
