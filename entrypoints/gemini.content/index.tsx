@@ -117,6 +117,7 @@ export default defineContentScript({
       if (appPattern.includes(newUrl)) {
         seen = new WeakSet()
         statusPromise = fetchStatus()
+        document.querySelectorAll('dc-publish-btn').forEach((el) => el.remove())
         detectCodeBlocks()
       }
     })
