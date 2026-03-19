@@ -54,4 +54,5 @@ export const { sendMessage, onMessage } = defineExtensionMessaging<{
   getProjects(data: void): ProjectItem[]
   getDomains(data: void): { domains: { domain: string; type: 'burner' | 'vanity' }[]; tier: string }
   grantPermissions(data: { origins: string[] }): boolean
+  logout(data: void): void
 }>()
