@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { sendMessage } from '../lib/messaging'
 
+const logoUrl = browser.runtime.getURL('/button-logo-gradient.png')
+
 export interface PublishButtonProps {
   chatId?: string
   chatUrl?: string
   hasExisting: boolean
-  colorClass: string
   getCode: () => string | Promise<string>
   getLanguage: () => string
   onPublished?: () => void
@@ -38,11 +39,12 @@ async function copyToClipboard(text: string): Promise<boolean> {
   return false
 }
 
+const buttonBgUrl = browser.runtime.getURL('/button.png')
+
 export function PublishButton({
   chatId,
   chatUrl,
   hasExisting,
-  colorClass,
   getCode,
   getLanguage,
   onPublished,
@@ -72,11 +74,42 @@ export function PublishButton({
 
   return (
     <button
-      className={`${colorClass} text-white text-xs font-semibold px-3 h-8 rounded-md cursor-pointer border-0 shrink-0 leading-none disabled:opacity-70 disabled:cursor-not-allowed`}
-      disabled={disabled}
       onClick={handleClick}
+      disabled={disabled}
+      style={{
+        width: 89,
+        height: 30,
+        background: `url('${buttonBgUrl}') center / 100% 100% no-repeat`,
+        border: 'none',
+        padding: 0,
+        margin: 0,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.7 : 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+      }}
     >
-      {label}
+      <span
+        style={{
+          fontFamily: 'Inter, sans-serif',
+          fontWeight: 500,
+          fontSize: 14,
+          lineHeight: '26px',
+          color: '#fff',
+          letterSpacing: '-0.42px',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {label}
+      </span>
+      <img
+        src={logoUrl}
+        alt=""
+        style={{ height: 13, width: 'auto', flexShrink: 0 }}
+        draggable={false}
+      />
     </button>
   )
 }

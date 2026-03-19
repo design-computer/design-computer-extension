@@ -9,7 +9,7 @@ export default defineContentScript({
   registration: 'runtime',
 
   async main(ctx) {
-    console.log('[design.computer] content script active on ChatGPT')
+    console.log('[design.computer] chatgpt content script LOADED')
 
     // Fetch session from web app via background
     sendMessage('getSession', undefined)
@@ -60,21 +60,39 @@ export default defineContentScript({
 
     /** Find the toolbar buttons container inside a code block */
     function getToolbarButtons(block: Element): Element | null {
-      // The first button inside the pre is the Copy button; its parent is the buttons flex row
+      // ChatGPT's code block toolbar: the buttons row is inside a sticky header
+      // Look for the flex row containing the copy/edit buttons (justify-self-end container)
+      const buttonsRow = block.querySelector('div[class*="sticky"] div[class*="justify-self-end"]')
+      if (buttonsRow) return buttonsRow
+      // Fallback: first button's parent
       return block.querySelector('button')?.parentElement ?? null
     }
 
     function flushPending() {
       if (pending.size === 0 || isStreaming()) return
+      const deferred: Element[] = []
       pending.forEach((block) => {
-        seen.add(block)
-        injectButton(block)
+        const toolbar = getToolbarButtons(block)
+        if (toolbar) {
+          seen.add(block)
+          injectButton(block)
+        } else {
+          // Toolbar not rendered yet — keep in pending for next mutation
+          deferred.push(block)
+        }
       })
       pending.clear()
+      deferred.forEach((b) => pending.add(b))
     }
 
     function detectCodeBlocks() {
-      document.querySelectorAll('pre[data-start]').forEach((block) => {
+      const blocks = document.querySelectorAll('pre[data-start]')
+      console.log(
+        '[design.computer] chatgpt detectCodeBlocks: found',
+        blocks.length,
+        'pre[data-start] elements',
+      )
+      blocks.forEach((block) => {
         if (seen.has(block) || pending.has(block)) return
         pending.add(block)
       })
@@ -83,8 +101,12 @@ export default defineContentScript({
 
     async function injectButton(block: Element) {
       const toolbar = getToolbarButtons(block)
-      if (!toolbar) return
+      if (!toolbar) {
+        console.warn('[design.computer] chatgpt injectButton: no toolbar found for block')
+        return
+      }
       if (toolbar.querySelector('dc-publish-btn')) return
+      console.log('[design.computer] chatgpt injectButton: injecting publish button')
 
       const hasExisting = await statusPromise
       const chatId = getChatId()
@@ -103,7 +125,6 @@ export default defineContentScript({
               chatId={chatId}
               chatUrl={location.href}
               hasExisting={hasExisting}
-              colorClass="bg-[#10a37f]"
               getCode={() => block.querySelector('.cm-content')?.textContent ?? ''}
               getLanguage={() => detectLanguage(block)}
               onPublished={() => {
@@ -118,6 +139,7 @@ export default defineContentScript({
         },
       })
       ui.mount()
+      toolbar.prepend(ui.shadow.host)
     }
 
     detectCodeBlocks()
