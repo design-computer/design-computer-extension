@@ -24,17 +24,28 @@ export default defineBackground(() => {
     }
   })
 
+  // Register content scripts when options page grants permissions
+  browser.runtime.onMessage.addListener((message) => {
+    if (message?.type === 'registerContentScripts') {
+      registerGrantedContentScripts()
+    }
+  })
+
   // Extension icon click → open options if no permissions granted, otherwise toggle panel
   browser.action.onClicked.addListener(async (tab) => {
+    console.log('[design.computer] icon clicked, tab:', tab.id, 'url:', tab.url)
     const hasAny = await hasAnyPermission()
     if (!hasAny) {
+      console.log('[design.computer] no permissions granted, opening options')
       browser.runtime.openOptionsPage()
       return
     }
     if (!tab.id) return
     try {
       await browser.tabs.sendMessage(tab.id, { type: 'togglePanel' })
-    } catch {
+      console.log('[design.computer] togglePanel sent OK')
+    } catch (err) {
+      console.log('[design.computer] togglePanel failed, injecting scripts:', err)
       // Panel not injected yet — inject it
       try {
         // Inject panel
@@ -42,8 +53,10 @@ export default defineBackground(() => {
           target: { tabId: tab.id },
           files: ['content-scripts/panel.js'],
         })
+        console.log('[design.computer] panel.js injected')
 
         // Also inject the publish button script for this platform if not already active
+        console.log('[design.computer] tab.url:', tab.url ?? 'UNDEFINED')
         if (tab.url) {
           const url = new URL(tab.url)
           let platformScript: string | null = null
@@ -59,6 +72,7 @@ export default defineBackground(() => {
             platformCss = 'content-scripts/gemini.css'
           }
 
+          console.log('[design.computer] platform:', url.hostname, 'script:', platformScript)
           if (platformScript) {
             try {
               if (platformCss) {
@@ -71,12 +85,14 @@ export default defineBackground(() => {
                 target: { tabId: tab.id },
                 files: [platformScript],
               })
-            } catch {
-              /* already injected or no permission */
+              console.log('[design.computer] platform script injected:', platformScript)
+            } catch (e) {
+              console.warn('[design.computer] platform script injection failed:', e)
             }
           }
         }
-      } catch {
+      } catch (e) {
+        console.warn('[design.computer] panel injection failed, opening options:', e)
         // No permission for this site — open options page
         browser.runtime.openOptionsPage()
       }
@@ -132,8 +148,10 @@ async function hasAnyPermission(): Promise<boolean> {
 }
 
 async function registerGrantedContentScripts() {
+  console.log('[design.computer] registerGrantedContentScripts called')
   for (const origin of AI_ORIGINS) {
     const has = await browser.permissions.contains({ origins: [origin] })
+    console.log(`[design.computer] permission check ${origin}: ${has}`)
     if (!has) continue
 
     // Determine which content script to register
@@ -146,9 +164,10 @@ async function registerGrantedContentScripts() {
     // Check if already registered
     try {
       const existing = await browser.scripting.getRegisteredContentScripts({ ids: [id] })
+      console.log(`[design.computer] existing registration for ${id}:`, existing.length)
       if (existing.length > 0) continue
-    } catch {
-      /* ignore */
+    } catch (e) {
+      console.warn(`[design.computer] getRegisteredContentScripts failed for ${id}:`, e)
     }
 
     // Register the content script
@@ -167,4 +186,10 @@ async function registerGrantedContentScripts() {
       console.warn(`[design.computer] failed to register ${id}:`, err)
     }
   }
+
+  // Log all registered scripts
+  try {
+    const all = await browser.scripting.getRegisteredContentScripts()
+    console.log('[design.computer] all registered scripts:', JSON.stringify(all.map((s) => s.id)))
+  } catch {}
 }
