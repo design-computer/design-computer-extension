@@ -325,8 +325,9 @@ function LoggedInView({
     }
 
     // Check if current chat already has a published project → show published state
+    // Skip if opened from publish button (user wants to publish/update, not see old state)
     const chatId = getChatId()
-    if (chatId) {
+    if (chatId && !initialCode) {
       sendMessage('checkStatus', { chatId })
         .then((status) => {
           if (status.exists && status.slug) {
