@@ -46,6 +46,19 @@ export interface ProjectItem {
   domain: string
 }
 
+export interface CodeData {
+  code: string
+  language: string
+  chatId?: string
+  chatUrl?: string
+}
+
+export interface SuccessData {
+  slug: string
+  url: string
+  session?: SessionData
+}
+
 export const { sendMessage, onMessage } = defineExtensionMessaging<{
   publish(data: PublishData): PublishResult
   checkStatus(data: CheckStatusData): CheckStatusResult
@@ -55,4 +68,7 @@ export const { sendMessage, onMessage } = defineExtensionMessaging<{
   getDomains(data: void): { domains: { domain: string; type: 'burner' | 'vanity' }[]; tier: string }
   grantPermissions(data: { origins: string[] }): boolean
   logout(data: void): void
+  openPanelWithCode(data: CodeData): void
+  openPanelWithSuccess(data: SuccessData): void
+  registerContentScripts(data: void): void
 }>()

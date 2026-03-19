@@ -36,18 +36,16 @@ export function PublishButton({
           sendMessage('publish', { code, language, chatId, chatUrl }),
           sendMessage('getSession', undefined),
         ])
-        await browser.runtime.sendMessage({
-          type: 'openPanelWithSuccess',
+        await sendMessage('openPanelWithSuccess', {
           slug: result.url.match(/https?:\/\/([^.]+)\./)?.[1] || '',
           url: result.url,
           session,
         })
       } else {
         // New publish flow: open panel with code data + random slug
-        await browser.runtime.sendMessage({
-          type: 'openPanelWithCode',
+        await sendMessage('openPanelWithCode', {
           code,
-          language,
+          language: language || 'html',
           chatId,
           chatUrl,
         })
