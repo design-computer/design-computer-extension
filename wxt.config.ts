@@ -42,7 +42,12 @@ export default defineConfig({
     optional_host_permissions: [...AI_ORIGINS, 'https://my.design.computer/*'],
     web_accessible_resources: [
       {
-        resources: ['fonts/Switzer-Variable.woff2', 'content-scripts/panel.css'],
+        resources: [
+          'fonts/Switzer-Variable.woff2',
+          'content-scripts/panel.css',
+          'button.png',
+          'button-logo-gradient.png',
+        ],
         matches: AI_ORIGINS,
       },
     ],

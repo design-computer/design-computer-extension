@@ -732,6 +732,7 @@ export default defineContentScript({
   registration: 'runtime',
 
   async main() {
+    console.log('[design.computer] panel content script LOADED')
     const { createIsolatedElement } = await import('@webext-core/isolated-element')
 
     let parentEl: HTMLElement | null = null
