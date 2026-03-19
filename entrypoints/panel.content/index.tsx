@@ -275,18 +275,24 @@ function LoggedInView({
   session,
   onClose,
   initialCode,
+  initialSuccess,
 }: {
   session: NonNullable<SessionData>
   onClose: () => void
   initialCode?: CodeData | null
+  initialSuccess?: SuccessData | null
 }) {
-  const [publishState, setPublishState] = useState<PublishState>('idle')
-  const [slug, setSlug] = useState(initialCode ? generateRandomSlug() : '')
+  const [publishState, setPublishState] = useState<PublishState>(
+    initialSuccess ? 'published' : 'idle',
+  )
+  const [slug, setSlug] = useState(
+    initialSuccess?.slug || (initialCode ? generateRandomSlug() : ''),
+  )
   const [codeData, setCodeData] = useState<CodeData | null>(initialCode ?? null)
   const [slugStatus, setSlugStatus] = useState<SlugStatus>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [errorType, setErrorType] = useState<ErrorType>('generic')
-  const [publishedUrl, setPublishedUrl] = useState('')
+  const [publishedUrl, setPublishedUrl] = useState(initialSuccess?.url || '')
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [showQr, setShowQr] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -725,7 +731,20 @@ function generateRandomSlug(): string {
   return slug
 }
 
-function Panel({ onClose, initialCode }: { onClose: () => void; initialCode?: CodeData | null }) {
+interface SuccessData {
+  slug: string
+  url: string
+}
+
+function Panel({
+  onClose,
+  initialCode,
+  initialSuccess,
+}: {
+  onClose: () => void
+  initialCode?: CodeData | null
+  initialSuccess?: SuccessData | null
+}) {
   const [session, setSession] = useState<SessionData | undefined>(undefined)
   const [loading, setLoading] = useState(true)
   useEffect(() => {
@@ -756,7 +775,14 @@ function Panel({ onClose, initialCode }: { onClose: () => void; initialCode?: Co
   }
 
   if (!session) return <LoggedOutView onClose={onClose} />
-  return <LoggedInView session={session} onClose={onClose} initialCode={initialCode} />
+  return (
+    <LoggedInView
+      session={session}
+      onClose={onClose}
+      initialCode={initialCode}
+      initialSuccess={initialSuccess}
+    />
+  )
 }
 
 // ── Content Script ───────────────────────────────────────────────────────────
@@ -797,6 +823,34 @@ export default defineContentScript({
       root.render(<Panel onClose={hide} initialCode={codeData} />)
     }
 
+    async function showSuccess(slug: string, url: string) {
+      if (parentEl) return
+
+      const { parentElement, isolatedElement } = await createIsolatedElement({
+        name: 'design-computer-panel',
+        css: {
+          url: browser.runtime.getURL('/content-scripts/panel.css'),
+        },
+        isolateEvents: ['keydown', 'keyup', 'keypress'],
+      })
+
+      parentElement.style.position = 'fixed'
+      parentElement.style.top = '0'
+      parentElement.style.right = '0'
+      parentElement.style.zIndex = '2147483647'
+
+      document.body.appendChild(parentElement)
+      parentEl = parentElement
+
+      root = ReactDOM.createRoot(isolatedElement)
+      root.render(<Panel onClose={hide} initialSuccess={{ slug, url }} />)
+
+      // Fire confetti
+      try {
+        confetti({ particleCount: 100, spread: 70, origin: { x: 0.9, y: 0.1 }, zIndex: 2147483647 })
+      } catch {}
+    }
+
     function hide() {
       if (root) {
         root.unmount()
@@ -822,6 +876,8 @@ export default defineContentScript({
         language?: string
         chatId?: string
         chatUrl?: string
+        slug?: string
+        url?: string
       }
 
       if (msg.type === 'togglePanel') {
@@ -833,9 +889,11 @@ export default defineContentScript({
           chatId: msg.chatId,
           chatUrl: msg.chatUrl,
         }
-        // Close existing panel and reopen with new code data
         if (parentEl) hide()
         show(currentCodeData)
+      } else if (msg.type === 'openPanelWithSuccess') {
+        if (parentEl) hide()
+        showSuccess(msg.slug || '', msg.url || '')
       }
     })
   },

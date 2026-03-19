@@ -66,6 +66,30 @@ export default defineBackground(() => {
       return
     }
 
+    if (message?.type === 'openPanelWithSuccess' && sender.tab?.id) {
+      // Update completed — open panel showing success state with confetti
+      ;(async () => {
+        const tabId = sender.tab!.id!
+        const successData = { type: 'openPanelWithSuccess', slug: message.slug, url: message.url }
+        try {
+          await browser.tabs.sendMessage(tabId, successData)
+        } catch {
+          try {
+            await browser.scripting.executeScript({
+              target: { tabId },
+              files: ['content-scripts/panel.js'],
+            })
+            setTimeout(() => {
+              browser.tabs.sendMessage(tabId, successData)
+            }, 300)
+          } catch {
+            browser.runtime.openOptionsPage()
+          }
+        }
+      })()
+      return
+    }
+
     if (message?.type === 'getPendingCode') {
       // Panel asks for pending code data
       const data = pendingCodeData
