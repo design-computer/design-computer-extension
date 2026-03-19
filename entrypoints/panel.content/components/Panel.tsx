@@ -47,12 +47,10 @@ export function Panel({
   let viewKey: string
   let viewContent: React.ReactNode
 
-  if (loggedOut || (!loading && !session)) {
-    viewKey = 'logged-out'
-    viewContent = <LoggedOutView onClose={onClose} />
-  } else if (initialSuccess) {
+  if (initialSuccess) {
     const s = initialSuccess.session ?? session ?? { user: { id: '', name: '', email: '' } }
     viewKey = 'success'
+    console.log('[design.computer] Panel view: success', { slug: initialSuccess.slug })
     viewContent = (
       <LoggedInView
         session={s as NonNullable<SessionData>}
@@ -61,10 +59,16 @@ export function Panel({
         initialSuccess={initialSuccess}
       />
     )
+  } else if (loggedOut || (!loading && !session)) {
+    viewKey = 'logged-out'
+    console.log('[design.computer] Panel view: logged-out', { loggedOut, loading, session })
+    viewContent = <LoggedOutView onClose={onClose} />
   } else if (loading) {
+    console.log('[design.computer] Panel view: loading')
     return null
   } else {
     viewKey = 'logged-in'
+    console.log('[design.computer] Panel view: logged-in', { user: session?.user?.email })
     viewContent = (
       <LoggedInView
         session={session!}
