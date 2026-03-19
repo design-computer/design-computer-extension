@@ -868,6 +868,16 @@ export default defineContentScript({
       else show()
     }
 
+    // Close panel on SPA navigation (chat change)
+    let lastUrl = location.href
+    const urlObserver = new MutationObserver(() => {
+      if (location.href !== lastUrl) {
+        lastUrl = location.href
+        if (parentEl) hide()
+      }
+    })
+    urlObserver.observe(document.body, { childList: true, subtree: true })
+
     browser.runtime.onMessage.addListener((message: unknown) => {
       if (!message || typeof message !== 'object' || !('type' in message)) return
       const msg = message as {
