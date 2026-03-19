@@ -40,9 +40,11 @@ export default defineBackground(() => {
     chatUrl?: string
   } | null = null
 
-  // Handle messages from content scripts and options page
+  // Handle raw messages from content scripts and options page
+  // (Skip messages from @webext-core/messaging — they have 'id' + 'type' + 'timestamp')
   browser.runtime.onMessage.addListener((message, sender) => {
-    if (message?.type === 'openPanelWithCode' && sender.tab?.id) {
+    if (!message?.type || message.timestamp) return
+    if (message.type === 'openPanelWithCode' && sender.tab?.id) {
       // Store code data, then inject/toggle panel
       pendingCodeData = {
         code: message.code,
