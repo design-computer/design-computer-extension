@@ -226,6 +226,7 @@ export default function App() {
   )
   // Already granted permissions (from previous session)
   const [alreadyGranted, setAlreadyGranted] = useState<Record<string, boolean>>({})
+  const [showSuccess, setShowSuccess] = useState(false)
 
   useEffect(() => {
     checkPermissions()
@@ -262,7 +263,15 @@ export default function App() {
     origins.push('https://my.design.computer/*')
     const ok = await browser.permissions.request({ origins })
     if (ok) {
+      // Tell background to register content scripts for newly granted permissions
+      try {
+        await browser.runtime.sendMessage({ type: 'registerContentScripts' })
+      } catch {
+        /* ignore */
+      }
       await checkPermissions()
+      setShowSuccess(true)
+      setTimeout(() => setShowSuccess(false), 3000)
     }
   }
 
@@ -281,6 +290,12 @@ export default function App() {
           <p className="text-base font-medium text-[#999] tracking-[-0.01em] leading-[22px]">
             We only access the code you choose to share, the rest is private.
           </p>
+
+          {showSuccess && (
+            <p className="text-sm font-medium text-[#00c274] tracking-[-0.01em] leading-5">
+              Permissions saved. You're all set!
+            </p>
+          )}
 
           {/* Action button */}
           {!allAlreadyGranted && (
