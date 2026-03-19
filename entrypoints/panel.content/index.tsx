@@ -422,7 +422,36 @@ function LoggedInView({
       setPublishState('published')
       setSlugStatus('idle')
       try {
-        confetti({ particleCount: 100, spread: 70, origin: { x: 0.9, y: 0.1 }, zIndex: 2147483647 })
+        // Panel is ~280px wide, positioned top-right with 16px margin
+        // Calculate origin relative to viewport so confetti bursts from panel bottom
+        const pw = 280
+        const panelRight = 16
+        const panelX = (window.innerWidth - panelRight - pw / 2) / window.innerWidth
+        const panelBottom = 0.35 // approximate panel bottom as fraction of viewport height
+        confetti({
+          particleCount: 80,
+          spread: 55,
+          origin: { x: panelX, y: panelBottom },
+          angle: 90,
+          startVelocity: 45,
+          zIndex: 2147483647,
+        })
+        confetti({
+          particleCount: 40,
+          spread: 40,
+          origin: { x: panelX - 0.05, y: panelBottom + 0.02 },
+          angle: 70,
+          startVelocity: 40,
+          zIndex: 2147483647,
+        })
+        confetti({
+          particleCount: 40,
+          spread: 40,
+          origin: { x: panelX + 0.05, y: panelBottom + 0.02 },
+          angle: 110,
+          startVelocity: 40,
+          zIndex: 2147483647,
+        })
       } catch {}
       try {
         const dataUrl = await QRCode.toDataURL(result.url, { width: 160, margin: 1 })
@@ -860,7 +889,36 @@ export default defineContentScript({
 
       // Fire confetti
       try {
-        confetti({ particleCount: 100, spread: 70, origin: { x: 0.9, y: 0.1 }, zIndex: 2147483647 })
+        // Panel is ~280px wide, positioned top-right with 16px margin
+        // Calculate origin relative to viewport so confetti bursts from panel bottom
+        const pw = 280
+        const panelRight = 16
+        const panelX = (window.innerWidth - panelRight - pw / 2) / window.innerWidth
+        const panelBottom = 0.35 // approximate panel bottom as fraction of viewport height
+        confetti({
+          particleCount: 80,
+          spread: 55,
+          origin: { x: panelX, y: panelBottom },
+          angle: 90,
+          startVelocity: 45,
+          zIndex: 2147483647,
+        })
+        confetti({
+          particleCount: 40,
+          spread: 40,
+          origin: { x: panelX - 0.05, y: panelBottom + 0.02 },
+          angle: 70,
+          startVelocity: 40,
+          zIndex: 2147483647,
+        })
+        confetti({
+          particleCount: 40,
+          spread: 40,
+          origin: { x: panelX + 0.05, y: panelBottom + 0.02 },
+          angle: 110,
+          startVelocity: 40,
+          zIndex: 2147483647,
+        })
       } catch {}
     }
 
