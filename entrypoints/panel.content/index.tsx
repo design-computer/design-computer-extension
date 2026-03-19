@@ -734,6 +734,7 @@ function generateRandomSlug(): string {
 interface SuccessData {
   slug: string
   url: string
+  session?: SessionData
 }
 
 function Panel({
@@ -746,7 +747,7 @@ function Panel({
   initialSuccess?: SuccessData | null
 }) {
   const [session, setSession] = useState<SessionData | undefined>(undefined)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initialSuccess)
   useEffect(() => {
     sendMessage('getSession', undefined)
       .then((data) => {
@@ -759,11 +760,23 @@ function Panel({
       })
   }, [])
 
+  // Success state — skip loading, show immediately with pre-fetched session
+  if (initialSuccess) {
+    const s = initialSuccess.session ?? session ?? { user: { id: '', name: '', email: '' } }
+    return (
+      <LoggedInView
+        session={s as NonNullable<SessionData>}
+        onClose={onClose}
+        initialSuccess={initialSuccess}
+      />
+    )
+  }
+
   if (loading) {
     return (
       <div className="relative m-4 w-[280px] bg-white rounded-[20px] shadow-[0_8px_32px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] p-1.5 flex flex-col gap-3 overflow-hidden font-sans">
         <div className="flex items-center p-1.5">
-          <div className="w-6 h-6 rounded-[20px] bg-gradient-to-b from-white to-[#999]" />
+          <div className="w-6 h-6 rounded-[20px] bg-linear-to-b from-white to-[#999]" />
         </div>
         <div className="flex items-center justify-center py-3 px-1.5">
           <p className="text-sm font-medium text-muted tracking-[-0.01em] text-center">
@@ -823,7 +836,7 @@ export default defineContentScript({
       root.render(<Panel onClose={hide} initialCode={codeData} />)
     }
 
-    async function showSuccess(slug: string, url: string) {
+    async function showSuccess(slug: string, url: string, session?: SessionData) {
       if (parentEl) return
 
       const { parentElement, isolatedElement } = await createIsolatedElement({
@@ -843,7 +856,7 @@ export default defineContentScript({
       parentEl = parentElement
 
       root = ReactDOM.createRoot(isolatedElement)
-      root.render(<Panel onClose={hide} initialSuccess={{ slug, url }} />)
+      root.render(<Panel onClose={hide} initialSuccess={{ slug, url, session }} />)
 
       // Fire confetti
       try {
@@ -903,7 +916,7 @@ export default defineContentScript({
         show(currentCodeData)
       } else if (msg.type === 'openPanelWithSuccess') {
         if (parentEl) hide()
-        showSuccess(msg.slug || '', msg.url || '')
+        showSuccess(msg.slug || '', msg.url || '', (msg as any).session)
       }
     })
   },

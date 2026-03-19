@@ -70,7 +70,12 @@ export default defineBackground(() => {
       // Update completed — open panel showing success state with confetti
       ;(async () => {
         const tabId = sender.tab!.id!
-        const successData = { type: 'openPanelWithSuccess', slug: message.slug, url: message.url }
+        const successData = {
+          type: 'openPanelWithSuccess',
+          slug: message.slug,
+          url: message.url,
+          session: message.session,
+        }
         try {
           await browser.tabs.sendMessage(tabId, successData)
         } catch {
