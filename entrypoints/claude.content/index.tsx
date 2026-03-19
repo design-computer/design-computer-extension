@@ -153,9 +153,6 @@ export default defineContentScript({
               hasExisting={hasExisting}
               getCode={() => readCode(panel)}
               getLanguage={() => detectPanelLanguage(panel)}
-              onPublished={() => {
-                statusPromise = Promise.resolve(true)
-              }}
             />,
           )
           return root
@@ -235,9 +232,6 @@ export default defineContentScript({
                 return readCode(panel)
               }}
               getLanguage={() => detectRowLanguage(row)}
-              onPublished={() => {
-                statusPromise = Promise.resolve(true)
-              }}
             />,
           )
           return root

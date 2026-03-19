@@ -274,12 +274,15 @@ type SlugStatus = 'idle' | 'checking' | 'available' | 'taken'
 function LoggedInView({
   session,
   onClose,
+  initialCode,
 }: {
   session: NonNullable<SessionData>
   onClose: () => void
+  initialCode?: CodeData | null
 }) {
   const [publishState, setPublishState] = useState<PublishState>('idle')
-  const [slug, setSlug] = useState('')
+  const [slug, setSlug] = useState(initialCode ? generateRandomSlug() : '')
+  const [codeData, setCodeData] = useState<CodeData | null>(initialCode ?? null)
   const [slugStatus, setSlugStatus] = useState<SlugStatus>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [errorType, setErrorType] = useState<ErrorType>('generic')
@@ -365,27 +368,36 @@ function LoggedInView({
     setPublishState('publishing')
     setErrorMsg(null)
     try {
-      const selectors = ['.code-block__code', 'pre code', '.cm-content', 'code', 'pre']
-      let code = ''
-      for (const sel of selectors) {
-        const el = document.querySelector(sel)
-        if (el?.textContent?.trim()) {
-          code = el.textContent.trim()
-          break
+      // Use stored code from publish button click, or scrape from page
+      let code = codeData?.code || ''
+      let language = codeData?.language || 'html'
+
+      if (!code) {
+        const selectors = ['.code-block__code', 'pre code', '.cm-content', 'code', 'pre']
+        for (const sel of selectors) {
+          const el = document.querySelector(sel)
+          if (el?.textContent?.trim()) {
+            code = el.textContent.trim()
+            break
+          }
         }
       }
+
       if (!code) {
         setErrorMsg('No code found on page')
         setErrorType('generic')
         setPublishState('error')
         return
       }
-      const chatId = getChatId()
+
+      const chatId = codeData?.chatId || getChatId()
+      const chatUrl = codeData?.chatUrl || location.href
+
       const result = await sendMessage('publish', {
         code,
-        language: 'html',
+        language,
         chatId,
-        chatUrl: location.href,
+        chatUrl,
         slug: slug || undefined,
         domain: selectedDomain,
       })
@@ -690,7 +702,21 @@ function LoggedInView({
 
 // ── Panel ────────────────────────────────────────────────────────────────────
 
-function Panel({ onClose }: { onClose: () => void }) {
+interface CodeData {
+  code: string
+  language: string
+  chatId?: string
+  chatUrl?: string
+}
+
+function generateRandomSlug(): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  let slug = ''
+  for (let i = 0; i < 8; i++) slug += chars[Math.floor(Math.random() * chars.length)]
+  return slug
+}
+
+function Panel({ onClose, initialCode }: { onClose: () => void; initialCode?: CodeData | null }) {
   const [session, setSession] = useState<SessionData | undefined>(undefined)
   const [loading, setLoading] = useState(true)
   useEffect(() => {
@@ -721,7 +747,7 @@ function Panel({ onClose }: { onClose: () => void }) {
   }
 
   if (!session) return <LoggedOutView onClose={onClose} />
-  return <LoggedInView session={session} onClose={onClose} />
+  return <LoggedInView session={session} onClose={onClose} initialCode={initialCode} />
 }
 
 // ── Content Script ───────────────────────────────────────────────────────────
@@ -737,8 +763,9 @@ export default defineContentScript({
 
     let parentEl: HTMLElement | null = null
     let root: ReactDOM.Root | null = null
+    let currentCodeData: CodeData | null = null
 
-    async function show() {
+    async function show(codeData?: CodeData | null) {
       if (parentEl) return
 
       const { parentElement, isolatedElement } = await createIsolatedElement({
@@ -758,7 +785,7 @@ export default defineContentScript({
       parentEl = parentElement
 
       root = ReactDOM.createRoot(isolatedElement)
-      root.render(<Panel onClose={hide} />)
+      root.render(<Panel onClose={hide} initialCode={codeData} />)
     }
 
     function hide() {
@@ -770,6 +797,7 @@ export default defineContentScript({
         parentEl.remove()
         parentEl = null
       }
+      currentCodeData = null
     }
 
     function toggle() {
@@ -778,13 +806,27 @@ export default defineContentScript({
     }
 
     browser.runtime.onMessage.addListener((message: unknown) => {
-      if (
-        message &&
-        typeof message === 'object' &&
-        'type' in message &&
-        (message as { type: string }).type === 'togglePanel'
-      ) {
+      if (!message || typeof message !== 'object' || !('type' in message)) return
+      const msg = message as {
+        type: string
+        code?: string
+        language?: string
+        chatId?: string
+        chatUrl?: string
+      }
+
+      if (msg.type === 'togglePanel') {
         toggle()
+      } else if (msg.type === 'openPanelWithCode') {
+        currentCodeData = {
+          code: msg.code || '',
+          language: msg.language || 'html',
+          chatId: msg.chatId,
+          chatUrl: msg.chatUrl,
+        }
+        // Close existing panel and reopen with new code data
+        if (parentEl) hide()
+        show(currentCodeData)
       }
     })
   },
