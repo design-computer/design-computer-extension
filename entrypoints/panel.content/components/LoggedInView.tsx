@@ -210,13 +210,7 @@ export function LoggedInView({
       const msg = err instanceof Error ? err.message : 'Publish failed'
       const type = classifyError(msg)
       setErrorType(type)
-      setErrorMsg(
-        type === 'free-limit'
-          ? 'You reached your free limit.'
-          : type === 'domain-taken'
-            ? 'This domain is already taken.'
-            : msg,
-      )
+      setErrorMsg(msg)
       setPublishState('error')
     }
   }
