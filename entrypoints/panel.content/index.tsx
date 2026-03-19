@@ -813,19 +813,7 @@ function Panel({
       />
     )
   } else if (loading) {
-    viewKey = 'loading'
-    viewContent = (
-      <div className="relative m-4 w-[280px] bg-white rounded-[20px] shadow-[0_8px_32px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] p-1.5 flex flex-col gap-3 overflow-hidden font-sans">
-        <div className="flex items-center p-1.5">
-          <div className="w-6 h-6 rounded-[20px] bg-linear-to-b from-white to-[#999]" />
-        </div>
-        <div className="flex items-center justify-center py-3 px-1.5">
-          <p className="text-sm font-medium text-muted tracking-[-0.01em] text-center">
-            Loading...
-          </p>
-        </div>
-      </div>
-    )
+    return null
   } else {
     viewKey = 'logged-in'
     viewContent = (
