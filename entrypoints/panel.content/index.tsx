@@ -797,12 +797,17 @@ function Panel({
       })
   }, [])
 
-  if (loggedOut) return <LoggedOutView onClose={onClose} />
+  // Determine which view to show
+  let viewKey: string
+  let viewContent: React.ReactNode
 
-  // Success state — skip loading, show immediately with pre-fetched session
-  if (initialSuccess) {
+  if (loggedOut || (!loading && !session)) {
+    viewKey = 'logged-out'
+    viewContent = <LoggedOutView onClose={onClose} />
+  } else if (initialSuccess) {
     const s = initialSuccess.session ?? session ?? { user: { id: '', name: '', email: '' } }
-    return (
+    viewKey = 'success'
+    viewContent = (
       <LoggedInView
         session={s as NonNullable<SessionData>}
         onClose={onClose}
@@ -810,10 +815,9 @@ function Panel({
         initialSuccess={initialSuccess}
       />
     )
-  }
-
-  if (loading) {
-    return (
+  } else if (loading) {
+    viewKey = 'loading'
+    viewContent = (
       <div className="relative m-4 w-[280px] bg-white rounded-[20px] shadow-[0_8px_32px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] p-1.5 flex flex-col gap-3 overflow-hidden font-sans">
         <div className="flex items-center p-1.5">
           <div className="w-6 h-6 rounded-[20px] bg-linear-to-b from-white to-[#999]" />
@@ -825,17 +829,31 @@ function Panel({
         </div>
       </div>
     )
+  } else {
+    viewKey = 'logged-in'
+    viewContent = (
+      <LoggedInView
+        session={session!}
+        onClose={onClose}
+        onLogout={() => setLoggedOut(true)}
+        initialCode={initialCode}
+        initialSuccess={initialSuccess}
+      />
+    )
   }
 
-  if (!session) return <LoggedOutView onClose={onClose} />
   return (
-    <LoggedInView
-      session={session}
-      onClose={onClose}
-      onLogout={() => setLoggedOut(true)}
-      initialCode={initialCode}
-      initialSuccess={initialSuccess}
-    />
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={viewKey}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -6 }}
+        transition={{ duration: 0.2, ease: 'easeInOut' }}
+      >
+        {viewContent}
+      </motion.div>
+    </AnimatePresence>
   )
 }
 
