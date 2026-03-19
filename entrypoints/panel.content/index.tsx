@@ -274,11 +274,13 @@ type SlugStatus = 'idle' | 'checking' | 'available' | 'taken'
 function LoggedInView({
   session,
   onClose,
+  onLogout,
   initialCode,
   initialSuccess,
 }: {
   session: NonNullable<SessionData>
   onClose: () => void
+  onLogout: () => void
   initialCode?: CodeData | null
   initialSuccess?: SuccessData | null
 }) {
@@ -544,9 +546,14 @@ function LoggedInView({
         </p>
         <button
           className="flex items-center gap-1 bg-transparent border-none cursor-pointer p-0 shrink-0"
-          onClick={() => {
-            window.open(`${WEB_URL}`, '_blank')
-            onClose()
+          onClick={async () => {
+            try {
+              await fetch(`${WEB_URL}/api/auth/sign-out`, {
+                method: 'POST',
+                credentials: 'include',
+              })
+            } catch {}
+            onLogout()
           }}
         >
           <span className="text-sm font-medium text-muted tracking-[-0.01em] leading-6 whitespace-nowrap">
@@ -776,6 +783,7 @@ function Panel({
   initialSuccess?: SuccessData | null
 }) {
   const [session, setSession] = useState<SessionData | undefined>(undefined)
+  const [loggedOut, setLoggedOut] = useState(false)
   const [loading, setLoading] = useState(!initialSuccess)
   useEffect(() => {
     sendMessage('getSession', undefined)
@@ -789,6 +797,8 @@ function Panel({
       })
   }, [])
 
+  if (loggedOut) return <LoggedOutView onClose={onClose} />
+
   // Success state — skip loading, show immediately with pre-fetched session
   if (initialSuccess) {
     const s = initialSuccess.session ?? session ?? { user: { id: '', name: '', email: '' } }
@@ -796,6 +806,7 @@ function Panel({
       <LoggedInView
         session={s as NonNullable<SessionData>}
         onClose={onClose}
+        onLogout={() => setLoggedOut(true)}
         initialSuccess={initialSuccess}
       />
     )
@@ -821,6 +832,7 @@ function Panel({
     <LoggedInView
       session={session}
       onClose={onClose}
+      onLogout={() => setLoggedOut(true)}
       initialCode={initialCode}
       initialSuccess={initialSuccess}
     />
