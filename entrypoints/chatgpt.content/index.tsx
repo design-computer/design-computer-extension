@@ -20,7 +20,7 @@ export default defineContentScript({
         console.warn('[design.computer] failed to get session:', err)
       })
 
-    const seen = new WeakSet<Element>()
+    let seen = new WeakSet<Element>()
     const pending = new Set<Element>()
     let statusPromise = fetchStatus()
 
@@ -149,7 +149,12 @@ export default defineContentScript({
     ctx.onInvalidated(() => observer.disconnect())
 
     ctx.addEventListener(window, 'wxt:locationchange', () => {
+      // Chat changed — reset everything and re-inject buttons with correct state
       statusPromise = fetchStatus()
+      seen = new WeakSet<Element>()
+      pending.clear()
+      // Remove all existing publish buttons so they re-render with correct Publish/Update
+      document.querySelectorAll('dc-publish-btn').forEach((el) => el.remove())
       detectCodeBlocks()
     })
   },

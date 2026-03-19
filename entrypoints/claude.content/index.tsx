@@ -296,6 +296,8 @@ export default defineContentScript({
       seenPanels = new WeakSet()
       seenRows = new WeakSet()
       statusPromise = fetchStatus()
+      // Remove old buttons so they re-render with correct Publish/Update
+      document.querySelectorAll('dc-publish-btn').forEach((el) => el.remove())
       detect()
     })
   },
