@@ -39,9 +39,8 @@ export function PublishButton({
       })
     } catch (err) {
       console.error('[design.computer] failed to open panel:', err)
+      setDisabled(false)
     }
-
-    setDisabled(false)
   }
 
   return (
