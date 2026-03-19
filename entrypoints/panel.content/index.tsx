@@ -976,9 +976,9 @@ export default defineContentScript({
         url?: string
       }
 
-      if (msg.type === 'togglePanel') {
+      if (msg.type === '__dc_togglePanel') {
         toggle()
-      } else if (msg.type === 'openPanelWithCode') {
+      } else if (msg.type === '__dc_openPanelWithCode') {
         currentCodeData = {
           code: msg.code || '',
           language: msg.language || 'html',
@@ -987,7 +987,7 @@ export default defineContentScript({
         }
         if (parentEl) hide()
         show(currentCodeData)
-      } else if (msg.type === 'openPanelWithSuccess') {
+      } else if (msg.type === '__dc_openPanelWithSuccess') {
         if (parentEl) hide()
         showSuccess(msg.slug || '', msg.url || '', (msg as any).session)
       }

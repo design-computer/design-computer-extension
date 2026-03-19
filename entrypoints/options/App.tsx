@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Switch } from '@/components/ui/switch'
+import { sendMessage } from '@/lib/messaging'
 
 const AI_SITES = [
   {
@@ -265,7 +266,7 @@ export default function App() {
     if (ok) {
       // Tell background to register content scripts for newly granted permissions
       try {
-        await browser.runtime.sendMessage({ type: 'registerContentScripts' })
+        await sendMessage('registerContentScripts', undefined)
       } catch {
         /* ignore */
       }
