@@ -11,6 +11,8 @@ export default defineContentScript({
   registration: 'runtime',
 
   async main(ctx) {
+    console.log('[design.computer] gemini content script LOADED')
+
     // Fetch session from web app via background
     sendMessage('getSession', undefined)
       .then((session) => {
@@ -73,7 +75,6 @@ export default defineContentScript({
               chatId={chatId}
               chatUrl={location.href}
               hasExisting={hasExisting}
-              colorClass="bg-[#1a73e8]"
               getCode={() => codeEl.textContent ?? ''}
               getLanguage={() => detectLanguage(codeContainer)}
               onPublished={() => {
@@ -97,9 +98,13 @@ export default defineContentScript({
 
     function detectCodeBlocks() {
       if (isStreaming()) return
-      document
-        .querySelectorAll('code[data-test-id="code-content"]')
-        .forEach((el) => injectButton(el))
+      const blocks = document.querySelectorAll('code[data-test-id="code-content"]')
+      console.log(
+        '[design.computer] gemini detectCodeBlocks: found',
+        blocks.length,
+        'code elements',
+      )
+      blocks.forEach((el) => injectButton(el))
     }
 
     detectCodeBlocks()

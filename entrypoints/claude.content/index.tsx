@@ -9,6 +9,8 @@ export default defineContentScript({
   registration: 'runtime',
 
   async main(ctx) {
+    console.log('[design.computer] claude content script LOADED')
+
     // Fetch session from web app via background
     sendMessage('getSession', undefined)
       .then((session) => {
@@ -133,7 +135,7 @@ export default defineContentScript({
       const chatId = getChatId()
 
       const copyBtn = panel.querySelector('button.rounded-l-lg')
-      const anchor = copyBtn?.parentElement?.parentElement
+      const anchor = copyBtn?.parentElement?.parentElement?.parentElement
       if (!anchor) return
 
       const ui = await createShadowRootUi(ctx, {
@@ -149,7 +151,6 @@ export default defineContentScript({
               chatId={chatId}
               chatUrl={location.href}
               hasExisting={hasExisting}
-              colorClass="bg-amber-600"
               getCode={() => readCode(panel)}
               getLanguage={() => detectPanelLanguage(panel)}
               onPublished={() => {
@@ -164,10 +165,7 @@ export default defineContentScript({
         },
       })
       ui.mount()
-
-      if (copyBtn?.parentElement) {
-        anchor.insertBefore(ui.shadow.host, copyBtn.parentElement)
-      }
+      anchor.prepend(ui.shadow.host)
     }
 
     // --- Inline chat row buttons ---
@@ -228,7 +226,6 @@ export default defineContentScript({
               chatId={chatId}
               chatUrl={location.href}
               hasExisting={hasExisting}
-              colorClass="bg-amber-600"
               getCode={async () => {
                 ;(row as HTMLElement).click()
                 const panel = await waitForPanel(3000)
@@ -282,8 +279,11 @@ export default defineContentScript({
 
     function detect() {
       if (isStreaming()) return
-      getArtifactPanels().forEach((panel) => injectPanelButton(panel))
-      getArtifactRows().forEach((row) => injectRowButton(row))
+      const panels = getArtifactPanels()
+      const rows = getArtifactRows()
+      console.log('[design.computer] claude detect: panels=', panels.length, 'rows=', rows.length)
+      panels.forEach((panel) => injectPanelButton(panel))
+      rows.forEach((row) => injectRowButton(row))
     }
 
     detect()
