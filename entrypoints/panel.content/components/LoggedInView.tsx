@@ -211,6 +211,7 @@ export function LoggedInView({
       const type = classifyError(msg)
       setErrorType(type)
       setErrorMsg(msg)
+      setSlugStatus('idle')
       setPublishState('error')
     }
   }
