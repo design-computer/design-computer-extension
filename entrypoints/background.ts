@@ -1,5 +1,13 @@
 import { onMessage } from '../lib/messaging'
-import { publish, checkStatus, checkSlug, getSession, getProjects, getDomains } from '../lib/api'
+import {
+  publish,
+  checkStatus,
+  checkSlug,
+  getSession,
+  getProjects,
+  getDomains,
+  logout,
+} from '../lib/api'
 import { codeToHtml } from '../lib/code-to-html'
 
 const AI_ORIGINS = ['*://claude.ai/*', '*://chatgpt.com/*', '*://gemini.google.com/*']
@@ -212,6 +220,10 @@ export default defineBackground(() => {
     const session = await getSession()
     console.log('[design.computer] session:', session)
     return session
+  })
+
+  onMessage('logout', async () => {
+    await logout()
   })
 })
 

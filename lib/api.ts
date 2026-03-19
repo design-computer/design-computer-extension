@@ -83,6 +83,13 @@ export async function checkSlug(slug: string): Promise<{ available: boolean }> {
   return res.json() as Promise<{ available: boolean }>
 }
 
+export async function logout(): Promise<void> {
+  await fetch(`${WEB_URL}/api/auth/sign-out`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+}
+
 export async function getSession(): Promise<SessionData> {
   const res = await fetch(`${WEB_URL}/api/auth/get-session`, {
     credentials: 'include',

@@ -548,10 +548,7 @@ function LoggedInView({
           className="flex items-center gap-1 bg-transparent border-none cursor-pointer p-0 shrink-0"
           onClick={async () => {
             try {
-              await fetch(`${WEB_URL}/api/auth/sign-out`, {
-                method: 'POST',
-                credentials: 'include',
-              })
+              await sendMessage('logout', undefined)
             } catch {}
             onLogout()
           }}
