@@ -15,6 +15,9 @@ const AI_ORIGINS = ['*://claude.ai/*', '*://chatgpt.com/*', '*://gemini.google.c
 export default defineBackground(() => {
   console.log('[design.computer] background active', { id: browser.runtime.id })
 
+  // Allow content scripts to access session storage
+  browser.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' })
+
   // Open options page on first install
   browser.runtime.onInstalled.addListener((details) => {
     if (details.reason === 'install') {

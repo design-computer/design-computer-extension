@@ -41,6 +41,11 @@ export default defineContentScript({
       parentEl = parentElement
 
       root = ReactDOM.createRoot(isolatedElement)
+      console.log(
+        '[design.computer] rendering Panel, prefetchedSession:',
+        !!prefetchedSession,
+        prefetchedSession,
+      )
       root.render(
         <Panel onClose={hide} initialCode={codeData} prefetchedSession={prefetchedSession} />,
       )
@@ -66,6 +71,7 @@ export default defineContentScript({
       parentEl = parentElement
 
       root = ReactDOM.createRoot(isolatedElement)
+      console.log('[design.computer] rendering Panel (success), session:', !!session, session)
       root.render(<Panel onClose={hide} initialSuccess={{ slug, url, session }} />)
 
       // Fire confetti
