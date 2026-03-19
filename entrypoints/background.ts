@@ -40,9 +40,14 @@ export default defineBackground(() => {
       return
     }
     if (!tab.id) return
+
+    const session = await getSession()
+
     try {
-      await sendMessage('togglePanel', undefined, tab.id)
+      await sendMessage('togglePanel', { session }, tab.id)
     } catch {
+      // Panel not injected — store action and inject
+      await browser.storage.session.set({ __dc_panel_action: { type: 'toggle', session } })
       try {
         await browser.scripting.executeScript({
           target: { tabId: tab.id },
@@ -63,12 +68,12 @@ export default defineBackground(() => {
     try {
       await sendMessage('openPanelWithCode', data, tabId)
     } catch {
+      await browser.storage.session.set({ __dc_panel_action: { type: 'code', codeData: data } })
       try {
         await browser.scripting.executeScript({
           target: { tabId },
           files: ['content-scripts/panel.js'],
         })
-        setTimeout(() => sendMessage('openPanelWithCode', data, tabId), 300)
       } catch {
         browser.runtime.openOptionsPage()
       }
@@ -81,12 +86,12 @@ export default defineBackground(() => {
     try {
       await sendMessage('openPanelWithSuccess', data, tabId)
     } catch {
+      await browser.storage.session.set({ __dc_panel_action: { type: 'success', ...data } })
       try {
         await browser.scripting.executeScript({
           target: { tabId },
           files: ['content-scripts/panel.js'],
         })
-        setTimeout(() => sendMessage('openPanelWithSuccess', data, tabId), 300)
       } catch {
         browser.runtime.openOptionsPage()
       }

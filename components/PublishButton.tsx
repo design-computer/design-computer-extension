@@ -31,11 +31,9 @@ export function PublishButton({
       const language = getLanguage()
 
       if (hasExisting && chatId) {
-        // Update flow: publish + fetch session in parallel, then open panel with success
-        const [result, session] = await Promise.all([
-          sendMessage('publish', { code, language, chatId, chatUrl }),
-          sendMessage('getSession', undefined),
-        ])
+        // Update flow: check session first, then publish, then open panel
+        const session = await sendMessage('getSession', undefined)
+        const result = await sendMessage('publish', { code, language, chatId, chatUrl })
         await sendMessage('openPanelWithSuccess', {
           slug: result.url.match(/https?:\/\/([^.]+)\./)?.[1] || '',
           url: result.url,
