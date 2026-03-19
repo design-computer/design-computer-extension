@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { sendMessage } from '../lib/messaging'
 
 const logoUrl = browser.runtime.getURL('/button-logo-gradient.png')
 const buttonBgUrl = browser.runtime.getURL('/button.png')
@@ -29,16 +30,26 @@ export function PublishButton({
       const code = await getCode()
       const language = getLanguage()
 
-      // Send code data to background → opens panel with pre-filled data
-      await browser.runtime.sendMessage({
-        type: 'openPanelWithCode',
-        code,
-        language,
-        chatId,
-        chatUrl,
-      })
+      if (hasExisting && chatId) {
+        // Update flow: publish directly, then open panel with success state
+        const result = await sendMessage('publish', { code, language, chatId, chatUrl })
+        await browser.runtime.sendMessage({
+          type: 'openPanelWithSuccess',
+          slug: result.url.match(/https?:\/\/([^.]+)\./)?.[1] || '',
+          url: result.url,
+        })
+      } else {
+        // New publish flow: open panel with code data + random slug
+        await browser.runtime.sendMessage({
+          type: 'openPanelWithCode',
+          code,
+          language,
+          chatId,
+          chatUrl,
+        })
+      }
     } catch (err) {
-      console.error('[design.computer] failed to open panel:', err)
+      console.error('[design.computer] failed:', err)
       setDisabled(false)
     }
   }
