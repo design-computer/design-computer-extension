@@ -77,6 +77,7 @@ export default defineContentScript({
               hasExisting={hasExisting}
               getCode={() => codeEl.textContent ?? ''}
               getLanguage={() => detectLanguage(codeContainer)}
+              size="small"
             />,
           )
           return root
