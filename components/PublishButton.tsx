@@ -10,6 +10,7 @@ export interface PublishButtonProps {
   hasExisting: boolean
   getCode: () => string | Promise<string>
   getLanguage: () => string
+  size?: 'default' | 'small'
 }
 
 export function PublishButton({
@@ -18,7 +19,9 @@ export function PublishButton({
   hasExisting,
   getCode,
   getLanguage,
+  size = 'default',
 }: PublishButtonProps) {
+  const isSmall = size === 'small'
   const [label] = useState(hasExisting ? 'Update' : 'Publish')
   const [disabled, setDisabled] = useState(false)
 
@@ -59,8 +62,8 @@ export function PublishButton({
       onClick={handleClick}
       disabled={disabled}
       style={{
-        width: 89,
-        height: 30,
+        width: isSmall ? 79 : 89,
+        height: isSmall ? 22 : 30,
         background: `url('${buttonBgUrl}') center / 100% 100% no-repeat`,
         border: 'none',
         padding: 0,
@@ -77,8 +80,8 @@ export function PublishButton({
         style={{
           fontFamily: 'Inter, sans-serif',
           fontWeight: 500,
-          fontSize: 14,
-          lineHeight: '26px',
+          fontSize: isSmall ? 12 : 14,
+          lineHeight: isSmall ? '20px' : '26px',
           color: '#fff',
           letterSpacing: '-0.42px',
           whiteSpace: 'nowrap',
@@ -89,7 +92,7 @@ export function PublishButton({
       <img
         src={logoUrl}
         alt=""
-        style={{ height: 13, width: 'auto', flexShrink: 0 }}
+        style={{ height: isSmall ? 10 : 13, width: 'auto', flexShrink: 0 }}
         draggable={false}
       />
     </button>
