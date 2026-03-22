@@ -99,8 +99,11 @@ export async function getSession(): Promise<SessionData> {
 
   if (!res.ok) return null
 
-  const data = (await res.json()) as { session?: unknown; user?: NonNullable<SessionData>['user'] }
-  if (!data.user) return null
+  const data = (await res.json().catch(() => null)) as {
+    session?: unknown
+    user?: NonNullable<SessionData>['user']
+  } | null
+  if (!data?.user) return null
 
   await localExtStorage.setItem('userId', data.user.id)
 

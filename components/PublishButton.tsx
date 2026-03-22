@@ -24,12 +24,12 @@ export function PublishButton({
   size = 'default',
 }: PublishButtonProps) {
   const isSmall = size === 'small'
-  const [label, setLabel] = useState(hasExisting ? 'Update' : 'Publish')
+  const [isUpdate, setIsUpdate] = useState(hasExisting)
   const [disabled, setDisabled] = useState(false)
 
   useEffect(() => {
     const handler = () => {
-      setLabel('Update')
+      setIsUpdate(true)
       setDisabled(false)
     }
     document.addEventListener(DC_PUBLISHED_EVENT, handler)
@@ -44,7 +44,7 @@ export function PublishButton({
       const code = await getCode()
       const language = getLanguage()
 
-      if (hasExisting && chatId) {
+      if (isUpdate && chatId) {
         // Update flow: check session first, then publish, then open panel
         const session = await sendMessage('getSession', undefined)
         const result = await sendMessage('publish', { code, language, chatId, chatUrl })
@@ -99,7 +99,7 @@ export function PublishButton({
           whiteSpace: 'nowrap',
         }}
       >
-        {label}
+        {isUpdate ? 'Update' : 'Publish'}
       </span>
       <img
         src={logoUrl}
