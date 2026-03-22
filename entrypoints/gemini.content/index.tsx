@@ -91,6 +91,7 @@ export default defineContentScript({
       // Prepend instead of default append and ensure parent is flex row
       if (buttonsDiv) {
         ;(buttonsDiv as HTMLElement).style.display = 'flex'
+        ;(buttonsDiv as HTMLElement).style.alignItems = 'center'
         buttonsDiv.prepend(ui.shadow.host)
       }
     }
