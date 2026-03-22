@@ -141,7 +141,17 @@ export default defineContentScript({
 
     detectCodeBlocks()
 
-    const observer = new MutationObserver(() => detectCodeBlocks())
+    let wasStreaming = false
+    const observer = new MutationObserver(() => {
+      const streaming = isStreaming()
+      detectCodeBlocks()
+      // When streaming just ended, flush any pending blocks that were waiting
+      if (wasStreaming && !streaming && pending.size > 0) {
+        // Delay to let toolbars render after streaming ends
+        setTimeout(() => flushPending(), 500)
+      }
+      wasStreaming = streaming
+    })
     observer.observe(document.body, { childList: true, subtree: true })
     ctx.onInvalidated(() => observer.disconnect())
 
