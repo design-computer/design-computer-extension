@@ -2,7 +2,6 @@ import './style.css'
 import ReactDOM from 'react-dom/client'
 import { onMessage } from '../../lib/messaging'
 import type { SessionData } from '../../lib/messaging'
-import confetti from 'canvas-confetti'
 import type { CodeData } from './types'
 import { Panel } from './components/Panel'
 
@@ -73,40 +72,6 @@ export default defineContentScript({
       root = ReactDOM.createRoot(isolatedElement)
       console.log('[design.computer] rendering Panel (success), session:', !!session, session)
       root.render(<Panel onClose={hide} initialSuccess={{ slug, url, session }} />)
-
-      // Fire confetti
-      try {
-        // Panel is ~280px wide, positioned top-right with 16px margin
-        // Calculate origin relative to viewport so confetti bursts from panel bottom
-        const pw = 280
-        const panelRight = 16
-        const panelX = (window.innerWidth - panelRight - pw / 2) / window.innerWidth
-        const panelBottom = 0.35 // approximate panel bottom as fraction of viewport height
-        confetti({
-          particleCount: 80,
-          spread: 55,
-          origin: { x: panelX, y: panelBottom },
-          angle: 90,
-          startVelocity: 45,
-          zIndex: 2147483647,
-        })
-        confetti({
-          particleCount: 40,
-          spread: 40,
-          origin: { x: panelX - 0.05, y: panelBottom + 0.02 },
-          angle: 70,
-          startVelocity: 40,
-          zIndex: 2147483647,
-        })
-        confetti({
-          particleCount: 40,
-          spread: 40,
-          origin: { x: panelX + 0.05, y: panelBottom + 0.02 },
-          angle: 110,
-          startVelocity: 40,
-          zIndex: 2147483647,
-        })
-      } catch {}
     }
 
     function hide() {

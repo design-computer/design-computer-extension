@@ -1,27 +1,27 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { sendMessage } from '../../../lib/messaging'
-import type { SessionData } from '../../../lib/messaging'
-import { motion, AnimatePresence } from 'framer-motion'
-import confetti from 'canvas-confetti'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { AnimatePresence, motion } from 'framer-motion'
 import QRCode from 'qrcode'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { SessionData } from '../../../lib/messaging'
+import { sendMessage } from '../../../lib/messaging'
 import {
-  GlobeIcon,
+  CheckIcon,
   ChevronDownIcon,
+  CopyIcon,
+  GlobeIcon,
   LogoutIcon,
-  SpinnerIcon,
+  QrIcon,
   SadIcon,
   SmileIcon,
-  CopyIcon,
-  QrIcon,
+  SpinnerIcon,
 } from '../icons'
 import type {
   CodeData,
-  SuccessData,
   DomainInfo,
-  PublishState,
   ErrorType,
+  PublishState,
   SlugStatus,
+  SuccessData,
 } from '../types'
 import { DEFAULT_DOMAIN, WEB_URL } from '../types'
 import { generateRandomSlug, getChatId } from '../utils'
@@ -32,13 +32,17 @@ export function LoggedInView({
   onLogout,
   initialCode,
   initialSuccess,
+  fireConfetti,
 }: {
   session: NonNullable<SessionData>
   onClose: () => void
   onLogout: () => void
   initialCode?: CodeData | null
   initialSuccess?: SuccessData | null
+  fireConfetti?: () => void
 }) {
+  const needsStatusCheck = !initialSuccess && !initialCode
+  const [statusChecked, setStatusChecked] = useState(!needsStatusCheck)
   const [publishState, setPublishState] = useState<PublishState>(
     initialSuccess ? 'published' : 'idle',
   )
@@ -71,6 +75,17 @@ export function LoggedInView({
       })
       .catch(() => {})
 
+    // Generate QR code for initial success state (update button flow)
+    if (initialSuccess?.url) {
+      QRCode.toDataURL(initialSuccess.url, {
+        width: 125,
+        margin: 1,
+        color: { dark: '#000000', light: '#F6F6F6' },
+      })
+        .then((dataUrl) => setQrDataUrl(dataUrl))
+        .catch(() => {})
+    }
+
     // Check availability for initial slug (from publish button)
     if (slug.length >= 2) {
       setSlugStatus('checking')
@@ -89,11 +104,20 @@ export function LoggedInView({
             setSlug(status.slug)
             if (status.domain) setSelectedDomain(status.domain)
             const domain = status.domain || DEFAULT_DOMAIN
-            setPublishedUrl(`https://${status.slug}.${domain}`)
+            const url = `https://${status.slug}.${domain}`
+            setPublishedUrl(url)
             setPublishState('published')
+            QRCode.toDataURL(url, {
+              width: 125,
+              margin: 1,
+              color: { dark: '#000000', light: '#F6F6F6' },
+            })
+              .then((dataUrl) => setQrDataUrl(dataUrl))
+              .catch(() => {})
           }
         })
         .catch(() => {})
+        .finally(() => setStatusChecked(true))
     }
   }, [])
 
@@ -170,40 +194,14 @@ export function LoggedInView({
       setPublishedUrl(result.url)
       setPublishState('published')
       setSlugStatus('idle')
+      fireConfetti?.()
+      document.dispatchEvent(new CustomEvent('__dc_published'))
       try {
-        // Panel is ~280px wide, positioned top-right with 16px margin
-        // Calculate origin relative to viewport so confetti bursts from panel bottom
-        const pw = 280
-        const panelRight = 16
-        const panelX = (window.innerWidth - panelRight - pw / 2) / window.innerWidth
-        const panelBottom = 0.35 // approximate panel bottom as fraction of viewport height
-        confetti({
-          particleCount: 80,
-          spread: 55,
-          origin: { x: panelX, y: panelBottom },
-          angle: 90,
-          startVelocity: 45,
-          zIndex: 2147483647,
+        const dataUrl = await QRCode.toDataURL(result.url, {
+          width: 125,
+          margin: 1,
+          color: { dark: '#000000', light: '#F6F6F6' },
         })
-        confetti({
-          particleCount: 40,
-          spread: 40,
-          origin: { x: panelX - 0.05, y: panelBottom + 0.02 },
-          angle: 70,
-          startVelocity: 40,
-          zIndex: 2147483647,
-        })
-        confetti({
-          particleCount: 40,
-          spread: 40,
-          origin: { x: panelX + 0.05, y: panelBottom + 0.02 },
-          angle: 110,
-          startVelocity: 40,
-          zIndex: 2147483647,
-        })
-      } catch {}
-      try {
-        const dataUrl = await QRCode.toDataURL(result.url, { width: 160, margin: 1 })
         setQrDataUrl(dataUrl)
       } catch {}
     } catch (err) {
@@ -220,9 +218,11 @@ export function LoggedInView({
     try {
       await navigator.clipboard.writeText(publishedUrl)
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setTimeout(() => setCopied(false), 3000)
     } catch {}
   }
+
+  if (!statusChecked) return null
 
   const isPublished = publishState === 'published'
   const isPublishing = publishState === 'publishing'
@@ -270,18 +270,25 @@ export function LoggedInView({
     <>
       {/* Header */}
       <div className="flex items-center gap-2 p-1.5">
-        {session.user.image ? (
-          <img
-            src={session.user.image}
-            alt=""
-            className="w-6 h-6 rounded-[20px] object-cover shrink-0"
-          />
-        ) : (
-          <div className="w-6 h-6 rounded-[20px] bg-gradient-to-b from-white to-[#999] shrink-0" />
-        )}
-        <p className="flex-1 text-base font-medium text-black tracking-[-0.01em] leading-6 truncate">
-          {session.user.name}
-        </p>
+        <a
+          href={WEB_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 flex-1 min-w-0 no-underline cursor-pointer"
+        >
+          {session.user.image ? (
+            <img
+              src={session.user.image}
+              alt=""
+              className="w-6 h-6 rounded-[20px] object-cover shrink-0"
+            />
+          ) : (
+            <div className="w-6 h-6 rounded-[20px] bg-gradient-to-b from-white to-[#999] shrink-0" />
+          )}
+          <p className="flex-1 text-base font-medium text-black tracking-[-0.01em] leading-6 truncate">
+            {session.user.name}
+          </p>
+        </a>
         <button
           className="flex items-center gap-1 bg-transparent border-none cursor-pointer p-0 shrink-0"
           onClick={async () => {
@@ -305,7 +312,7 @@ export function LoggedInView({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-1"
           >
             {/* Congrats or QR — swap in place */}
             <AnimatePresence mode="wait">
@@ -316,9 +323,9 @@ export function LoggedInView({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="flex justify-center py-2"
+                  className="flex justify-center bg-[#F6F6F6] rounded-[14px] py-2 px-[47px] mt-3"
                 >
-                  <img src={qrDataUrl} alt="QR Code" className="w-[160px] h-[160px] rounded-lg" />
+                  <img src={qrDataUrl} alt="QR Code" className="w-[125px] h-[125px] rounded-lg" />
                 </motion.div>
               ) : (
                 <motion.div
@@ -353,10 +360,34 @@ export function LoggedInView({
                 <div className="flex items-center gap-2.5 shrink-0">
                   <button
                     onClick={handleCopy}
-                    className="bg-transparent border-none cursor-pointer p-0 flex"
+                    className="bg-transparent border-none cursor-pointer p-0 flex relative w-5 h-5"
                     title={copied ? 'Copied!' : 'Copy URL'}
                   >
-                    <CopyIcon />
+                    <AnimatePresence mode="wait">
+                      {copied ? (
+                        <motion.span
+                          key="check"
+                          initial={{ opacity: 0, scale: 0.5 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.5 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute inset-0 flex"
+                        >
+                          <CheckIcon />
+                        </motion.span>
+                      ) : (
+                        <motion.span
+                          key="copy"
+                          initial={{ opacity: 0, scale: 0.5 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.5 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute inset-0 flex"
+                        >
+                          <CopyIcon />
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
                   </button>
                   <button
                     onClick={() => setShowQr(!showQr)}
@@ -370,8 +401,8 @@ export function LoggedInView({
 
               {/* Done button */}
               <button
-                className="w-full bg-[#ccc] text-white border-none rounded-[14px] py-2 px-4 text-sm font-medium tracking-[-0.01em] leading-6 text-center cursor-pointer"
-                onClick={onClose}
+                disabled
+                className="w-full bg-[#ccc] text-white border-none rounded-[14px] py-2 px-4 text-sm font-medium tracking-[-0.01em] leading-6 text-center cursor-default"
               >
                 Done
               </button>

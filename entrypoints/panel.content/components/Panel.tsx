@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import confetti from 'canvas-confetti'
 import { sendMessage } from '../../../lib/messaging'
 import type { SessionData } from '../../../lib/messaging'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -20,6 +21,52 @@ export function Panel({
   const [session, setSession] = useState<SessionData | undefined>(prefetchedSession ?? undefined)
   const [loggedOut, setLoggedOut] = useState(false)
   const [loading, setLoading] = useState(!initialSuccess && !prefetchedSession)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const confettiRef = useRef<confetti.CreateTypes | null>(null)
+
+  useEffect(() => {
+    if (canvasRef.current && !confettiRef.current) {
+      confettiRef.current = confetti.create(canvasRef.current, { resize: true })
+    }
+    return () => {
+      confettiRef.current?.reset()
+    }
+  }, [])
+
+  const fireConfetti = useCallback(() => {
+    const fire = confettiRef.current
+    if (!fire) return
+    fire({
+      particleCount: 80,
+      spread: 55,
+      origin: { x: 0.5, y: 0.8 },
+      angle: 90,
+      startVelocity: 45,
+    })
+    fire({
+      particleCount: 40,
+      spread: 40,
+      origin: { x: 0.4, y: 0.82 },
+      angle: 70,
+      startVelocity: 40,
+    })
+    fire({
+      particleCount: 40,
+      spread: 40,
+      origin: { x: 0.6, y: 0.82 },
+      angle: 110,
+      startVelocity: 40,
+    })
+  }, [])
+  // Fire confetti on mount when opened with success state (update button flow)
+  useEffect(() => {
+    if (initialSuccess) {
+      // Small delay to let canvas render
+      const t = setTimeout(fireConfetti, 100)
+      return () => clearTimeout(t)
+    }
+  }, [initialSuccess, fireConfetti])
+
   useEffect(() => {
     if (prefetchedSession) return
     // Try reading pre-fetched session from storage first
@@ -57,6 +104,7 @@ export function Panel({
         onClose={onClose}
         onLogout={() => setLoggedOut(true)}
         initialSuccess={initialSuccess}
+        fireConfetti={fireConfetti}
       />
     )
   } else if (loggedOut || (!loading && !session)) {
@@ -76,12 +124,18 @@ export function Panel({
         onLogout={() => setLoggedOut(true)}
         initialCode={initialCode}
         initialSuccess={initialSuccess}
+        fireConfetti={fireConfetti}
       />
     )
   }
 
   return (
     <div className="relative m-4 w-[280px] bg-white rounded-[20px] shadow-[0_8px_32px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] p-1.5 flex flex-col gap-3 overflow-hidden font-sans">
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        style={{ zIndex: 50 }}
+      />
       <AnimatePresence mode="wait">
         <motion.div
           key={viewKey}
