@@ -116,7 +116,11 @@ export default defineContentScript({
     })
 
     onMessage('openPanelWithSuccess', ({ data }) => {
-      if (parentEl) hide()
+      if (parentEl) {
+        // Panel already open — just fire confetti
+        document.dispatchEvent(new CustomEvent('__dc_fire_confetti'))
+        return
+      }
       showSuccess(data.slug, data.url, data.session)
     })
 

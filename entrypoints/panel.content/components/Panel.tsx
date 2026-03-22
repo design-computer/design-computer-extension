@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import confetti from 'canvas-confetti'
-import { sendMessage } from '../../../lib/messaging'
-import type { SessionData } from '../../../lib/messaging'
+import { sendMessage } from '@/lib/messaging'
+import type { SessionData } from '@/lib/messaging'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { CodeData, SuccessData } from '../types'
+import type { CodeData, SuccessData } from '@/entrypoints/panel.content/types'
 import { LoggedOutView } from './LoggedOutView'
 import { LoggedInView } from './LoggedInView'
 
@@ -61,11 +61,17 @@ export function Panel({
   // Fire confetti on mount when opened with success state (update button flow)
   useEffect(() => {
     if (initialSuccess) {
-      // Small delay to let canvas render
       const t = setTimeout(fireConfetti, 100)
       return () => clearTimeout(t)
     }
   }, [initialSuccess, fireConfetti])
+
+  // Listen for external confetti trigger (e.g. Update button clicked while panel is open)
+  useEffect(() => {
+    const handler = () => fireConfetti()
+    document.addEventListener('__dc_fire_confetti', handler)
+    return () => document.removeEventListener('__dc_fire_confetti', handler)
+  }, [fireConfetti])
 
   useEffect(() => {
     if (prefetchedSession) return
@@ -130,7 +136,11 @@ export function Panel({
   }
 
   return (
-    <div className="relative m-4 w-[280px] bg-white rounded-[20px] shadow-[0_8px_32px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] p-1.5 flex flex-col gap-3 overflow-hidden font-sans">
+    <motion.div
+      layout
+      transition={{ layout: { duration: 0.25, ease: 'easeInOut' } }}
+      className="relative m-4 w-[280px] bg-white rounded-[20px] shadow-[0_8px_32px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] p-1.5 flex flex-col gap-3 overflow-hidden font-sans"
+    >
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full pointer-events-none"
@@ -147,6 +157,6 @@ export function Panel({
           {viewContent}
         </motion.div>
       </AnimatePresence>
-    </div>
+    </motion.div>
   )
 }

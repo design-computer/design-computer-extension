@@ -1,4 +1,4 @@
-import { WEB_URL } from '../types'
+import { WEB_URL } from '@/entrypoints/panel.content/types'
 
 export function LoggedOutView({ onClose }: { onClose: () => void }) {
   return (
