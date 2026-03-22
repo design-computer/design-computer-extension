@@ -56,7 +56,6 @@ export default defineBackground(() => {
           target: { tabId: tab.id },
           files: ['content-scripts/panel.js'],
         })
-        if (tab.url) await injectPlatformScripts(tab.id, tab.url)
       } catch {
         browser.runtime.openOptionsPage()
       }
