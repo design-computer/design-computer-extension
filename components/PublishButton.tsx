@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { sendMessage } from '../lib/messaging'
+
+export const DC_PUBLISHED_EVENT = '__dc_published'
 
 const logoUrl = browser.runtime.getURL('/button-logo-gradient.png')
 const buttonBgUrl = browser.runtime.getURL('/button.png')
@@ -22,8 +24,17 @@ export function PublishButton({
   size = 'default',
 }: PublishButtonProps) {
   const isSmall = size === 'small'
-  const [label] = useState(hasExisting ? 'Update' : 'Publish')
+  const [label, setLabel] = useState(hasExisting ? 'Update' : 'Publish')
   const [disabled, setDisabled] = useState(false)
+
+  useEffect(() => {
+    const handler = () => {
+      setLabel('Update')
+      setDisabled(false)
+    }
+    document.addEventListener(DC_PUBLISHED_EVENT, handler)
+    return () => document.removeEventListener(DC_PUBLISHED_EVENT, handler)
+  }, [])
 
   const handleClick = async () => {
     if (disabled) return
@@ -42,6 +53,7 @@ export function PublishButton({
           url: result.url,
           session,
         })
+        document.dispatchEvent(new CustomEvent(DC_PUBLISHED_EVENT))
       } else {
         // New publish flow: open panel with code data + random slug
         await sendMessage('openPanelWithCode', {

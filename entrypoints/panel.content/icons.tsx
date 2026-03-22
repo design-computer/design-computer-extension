@@ -193,23 +193,127 @@ export const SmileIcon = () => (
 
 export const CopyIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="shrink-0">
-    <rect x="7" y="7" width="9" height="9" rx="1.5" stroke="#999" strokeWidth="1.2" />
+    <g clipPath="url(#clip0_copy)">
+      <path
+        d="M16.6665 6.66663H8.33317C7.4127 6.66663 6.6665 7.41282 6.6665 8.33329V16.6666C6.6665 17.5871 7.4127 18.3333 8.33317 18.3333H16.6665C17.587 18.3333 18.3332 17.5871 18.3332 16.6666V8.33329C18.3332 7.41282 17.587 6.66663 16.6665 6.66663Z"
+        stroke="#999"
+        strokeWidth="1.66667"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3.33317 13.3333C2.4165 13.3333 1.6665 12.5833 1.6665 11.6666V3.33329C1.6665 2.41663 2.4165 1.66663 3.33317 1.66663H11.6665C12.5832 1.66663 13.3332 2.41663 13.3332 3.33329"
+        stroke="#999"
+        strokeWidth="1.66667"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </g>
+    <defs>
+      <clipPath id="clip0_copy">
+        <rect width="20" height="20" fill="white" />
+      </clipPath>
+    </defs>
+  </svg>
+)
+
+export const CheckIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="shrink-0">
     <path
-      d="M13 7V5.5A1.5 1.5 0 0011.5 4h-7A1.5 1.5 0 003 5.5v7A1.5 1.5 0 005.5 14H7"
-      stroke="#999"
-      strokeWidth="1.2"
+      d="M4.5 10.5L8 14L15.5 6.5"
+      stroke="black"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
     />
   </svg>
 )
 
 export const QrIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="shrink-0">
-    <rect x="3" y="3" width="5.5" height="5.5" rx="1" stroke="#999" strokeWidth="1.2" />
-    <rect x="11.5" y="3" width="5.5" height="5.5" rx="1" stroke="#999" strokeWidth="1.2" />
-    <rect x="3" y="11.5" width="5.5" height="5.5" rx="1" stroke="#999" strokeWidth="1.2" />
-    <rect x="12" y="12" width="2" height="2" fill="#999" />
-    <rect x="15.5" y="12" width="2" height="2" fill="#999" />
-    <rect x="12" y="15.5" width="2" height="2" fill="#999" />
-    <rect x="15.5" y="15.5" width="2" height="2" fill="#999" />
+    <path
+      d="M5.83333 2.5H3.33333C2.8731 2.5 2.5 2.8731 2.5 3.33333V5.83333C2.5 6.29357 2.8731 6.66667 3.33333 6.66667H5.83333C6.29357 6.66667 6.66667 6.29357 6.66667 5.83333V3.33333C6.66667 2.8731 6.29357 2.5 5.83333 2.5Z"
+      stroke="#999"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M16.6668 2.5H14.1668C13.7066 2.5 13.3335 2.8731 13.3335 3.33333V5.83333C13.3335 6.29357 13.7066 6.66667 14.1668 6.66667H16.6668C17.1271 6.66667 17.5002 6.29357 17.5002 5.83333V3.33333C17.5002 2.8731 17.1271 2.5 16.6668 2.5Z"
+      stroke="#999"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M5.83333 13.3334H3.33333C2.8731 13.3334 2.5 13.7065 2.5 14.1667V16.6667C2.5 17.1269 2.8731 17.5 3.33333 17.5H5.83333C6.29357 17.5 6.66667 17.1269 6.66667 16.6667V14.1667C6.66667 13.7065 6.29357 13.3334 5.83333 13.3334Z"
+      stroke="#999"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M17.5002 13.3334H15.0002C14.5581 13.3334 14.1342 13.509 13.8217 13.8215C13.5091 14.1341 13.3335 14.558 13.3335 15V17.5"
+      stroke="#999"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M17.5 17.5V17.5083"
+      stroke="#999"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M10.0002 5.83337V8.33337C10.0002 8.7754 9.82457 9.19932 9.51201 9.51188C9.19945 9.82445 8.77552 10 8.3335 10H5.8335"
+      stroke="#999"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M2.5 10H2.50833"
+      stroke="#999"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M10 2.5H10.0083"
+      stroke="#999"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M10 13.3334V13.3417"
+      stroke="#999"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M13.3335 10H14.1668"
+      stroke="#999"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M17.5 10V10.0083"
+      stroke="#999"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M10 17.5V16.6666"
+      stroke="#999"
+      strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 )

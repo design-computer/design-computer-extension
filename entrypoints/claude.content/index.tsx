@@ -58,36 +58,51 @@ export default defineContentScript({
       return null
     }
 
+    async function readCodeViaClipboard(panel: Element): Promise<string | null> {
+      const copyBtn = panel.querySelector('button.rounded-l-lg') as HTMLButtonElement | null
+      if (!copyBtn) return null
+
+      try {
+        // Save current clipboard
+        const saved = await navigator.clipboard.readText().catch(() => null)
+
+        // Click Claude's Copy button
+        copyBtn.click()
+        await new Promise((r) => setTimeout(r, 200))
+
+        // Read the code
+        const code = await navigator.clipboard.readText()
+
+        // Restore original clipboard
+        if (saved !== null) {
+          await navigator.clipboard.writeText(saved).catch(() => {})
+        }
+
+        if (code?.trim()) {
+          console.log('[design.computer] read code via clipboard:', code.length, 'chars')
+          return code
+        }
+      } catch (err) {
+        console.warn('[design.computer] clipboard read failed:', err)
+      }
+      return null
+    }
+
     async function readCode(panel: Element): Promise<string> {
+      // Primary: click Claude's Copy button, read from clipboard, restore original
+      const clipboardCode = await readCodeViaClipboard(panel)
+      if (clipboardCode?.trim()) return clipboardCode
+
+      // Fallback: try reading from DOM
       const codeTab = panel.querySelector('button[aria-label="Code"]') as HTMLButtonElement | null
       const previewTab = panel.querySelector(
         'button[aria-label="Preview"]',
       ) as HTMLButtonElement | null
       const wasPreview = previewTab?.getAttribute('data-state') === 'on'
 
-      // Try reading from the preview iframe first (HTML artifacts)
-      if (wasPreview) {
-        try {
-          const iframe = panel.querySelector(
-            'iframe[title="Claude content"]',
-          ) as HTMLIFrameElement | null
-          const iframeDoc = iframe?.contentDocument
-          if (iframeDoc?.documentElement) {
-            const html = iframeDoc.documentElement.outerHTML
-            if (html.trim()) {
-              console.log('[design.computer] read HTML from preview iframe')
-              return html
-            }
-          }
-        } catch {
-          // cross-origin — fall through to code tab
-        }
-      }
-
       // Switch to Code tab
       if (wasPreview && codeTab) {
         codeTab.click()
-        // Wait for any code element to appear
         await new Promise<void>((resolve) => {
           let tries = 0
           const interval = setInterval(() => {
@@ -104,7 +119,7 @@ export default defineContentScript({
       const code = codeEl?.textContent ?? ''
 
       console.log(
-        '[design.computer] readCode result:',
+        '[design.computer] readCode fallback:',
         code.length,
         'chars, selector:',
         codeEl?.tagName,

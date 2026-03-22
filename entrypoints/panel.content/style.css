@@ -27,3 +27,8 @@
 .animate-dc-spin {
   animation: dc-spin 1s linear infinite;
 }
+
+button:hover:not(:disabled),
+a[href]:hover {
+  opacity: 0.8;
+}
