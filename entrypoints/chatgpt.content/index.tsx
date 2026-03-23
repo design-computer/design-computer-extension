@@ -22,10 +22,11 @@ export default defineContentScript({
 
     let seen = new WeakSet<Element>()
     const pending = new Set<Element>()
+    let currentChatId = location.pathname.match(/\/c\/([^/]+)/)?.[1]
     let statusPromise = fetchStatus()
 
     function getChatId() {
-      return location.pathname.match(/\/c\/([^/]+)/)?.[1]
+      return currentChatId
     }
 
     function fetchStatus(): Promise<boolean> {
@@ -37,10 +38,18 @@ export default defineContentScript({
     }
 
     function isStreaming() {
-      // ChatGPT has changed this aria-label over time — check both variants
       return !!document.querySelector(
-        '[aria-label="Stop streaming"], [aria-label="Stop generating"]',
+        '[data-testid="stop-button"], [aria-label="Stop streaming"], [aria-label="Stop generating"]',
       )
+    }
+
+    let lastStreamingState = false
+    function broadcastStreaming() {
+      const streaming = isStreaming()
+      if (streaming !== lastStreamingState) {
+        lastStreamingState = streaming
+        document.dispatchEvent(new CustomEvent('__dc_streaming', { detail: { streaming } }))
+      }
     }
 
     function detectLanguage(block: Element): string {
@@ -69,7 +78,7 @@ export default defineContentScript({
     }
 
     function flushPending() {
-      if (pending.size === 0 || isStreaming()) return
+      if (pending.size === 0) return
       const deferred: Element[] = []
       pending.forEach((block) => {
         const toolbar = getToolbarButtons(block)
@@ -144,6 +153,7 @@ export default defineContentScript({
     let wasStreaming = false
     const observer = new MutationObserver(() => {
       const streaming = isStreaming()
+      broadcastStreaming()
       detectCodeBlocks()
       // When streaming just ended, flush any pending blocks that were waiting
       if (wasStreaming && !streaming && pending.size > 0) {
@@ -155,8 +165,9 @@ export default defineContentScript({
     observer.observe(document.body, { childList: true, subtree: true })
     ctx.onInvalidated(() => observer.disconnect())
 
-    ctx.addEventListener(window, 'wxt:locationchange', () => {
+    ctx.addEventListener(window, 'wxt:locationchange', ({ newUrl }) => {
       // Chat changed — reset everything and re-inject buttons with correct state
+      currentChatId = new URL(newUrl).pathname.match(/\/c\/([^/]+)/)?.[1]
       statusPromise = fetchStatus()
       seen = new WeakSet<Element>()
       pending.clear()

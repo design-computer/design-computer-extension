@@ -47,6 +47,7 @@ export default defineConfig({
           'content-scripts/panel.css',
           'button.png',
           'button-logo-gradient.png',
+          'coding-bg.png',
         ],
         matches: AI_ORIGINS,
       },
