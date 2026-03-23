@@ -22,10 +22,11 @@ export default defineContentScript({
 
     let seenPanels = new WeakSet<Element>()
     let seenRows = new WeakSet<Element>()
+    let currentChatId = location.pathname.match(/\/chat\/([^/]+)/)?.[1]
     let statusPromise = fetchStatus()
 
     function getChatId() {
-      return location.pathname.match(/\/chat\/([^/]+)/)?.[1]
+      return currentChatId
     }
 
     function fetchStatus(): Promise<boolean> {
@@ -37,7 +38,19 @@ export default defineContentScript({
     }
 
     function isStreaming() {
-      return !!document.querySelector('button[aria-label="Stop Response"]')
+      return !!document.querySelector(
+        'button[aria-label="Stop Response"], button[aria-label="Stop response"]',
+      )
+    }
+
+    // Broadcast streaming state changes to publish buttons
+    let lastStreamingState = false
+    function broadcastStreaming() {
+      const streaming = isStreaming()
+      if (streaming !== lastStreamingState) {
+        lastStreamingState = streaming
+        document.dispatchEvent(new CustomEvent('__dc_streaming', { detail: { streaming } }))
+      }
     }
 
     // --- Side panel buttons ---
@@ -287,7 +300,6 @@ export default defineContentScript({
     // --- Detection ---
 
     function detect() {
-      if (isStreaming()) return
       const panels = getArtifactPanels()
       const rows = getArtifactRows()
       console.log('[design.computer] claude detect: panels=', panels.length, 'rows=', rows.length)
@@ -297,13 +309,17 @@ export default defineContentScript({
 
     detect()
 
-    const observer = new MutationObserver(() => detect())
+    const observer = new MutationObserver(() => {
+      broadcastStreaming()
+      detect()
+    })
     observer.observe(document.body, { childList: true, subtree: true })
     ctx.onInvalidated(() => observer.disconnect())
 
-    ctx.addEventListener(window, 'wxt:locationchange', () => {
+    ctx.addEventListener(window, 'wxt:locationchange', ({ newUrl }) => {
       seenPanels = new WeakSet()
       seenRows = new WeakSet()
+      currentChatId = new URL(newUrl).pathname.match(/\/chat\/([^/]+)/)?.[1]
       statusPromise = fetchStatus()
       // Remove old buttons so they re-render with correct Publish/Update
       document.querySelectorAll('dc-publish-btn').forEach((el) => el.remove())

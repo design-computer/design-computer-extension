@@ -23,10 +23,11 @@ export default defineContentScript({
       })
 
     let seen = new WeakSet<Element>()
+    let currentChatId = location.pathname.match(/\/app\/([^/]+)/)?.[1]
     let statusPromise = fetchStatus()
 
     function getChatId() {
-      return location.pathname.match(/\/app\/([^/]+)/)?.[1]
+      return currentChatId
     }
 
     function fetchStatus(): Promise<boolean> {
@@ -38,7 +39,26 @@ export default defineContentScript({
     }
 
     function isStreaming() {
-      return !!document.querySelector('button[aria-label="Stop generating"]')
+      return !!document.querySelector(
+        'button.send-button.stop, button[aria-label="Stop generating"]',
+      )
+    }
+
+    let lastStreamingState = false
+    function broadcastStreaming() {
+      const streaming = isStreaming()
+      if (streaming !== lastStreamingState) {
+        console.log(
+          '[design.computer] gemini streaming:',
+          streaming,
+          'stop-btn:',
+          !!document.querySelector('button.send-button.stop'),
+          'aria:',
+          !!document.querySelector('button[aria-label="Stop generating"]'),
+        )
+        lastStreamingState = streaming
+        document.dispatchEvent(new CustomEvent('__dc_streaming', { detail: { streaming } }))
+      }
     }
 
     function detectLanguage(codeContainer: Element): string {
@@ -97,7 +117,6 @@ export default defineContentScript({
     }
 
     function detectCodeBlocks() {
-      if (isStreaming()) return
       const blocks = document.querySelectorAll('code[data-test-id="code-content"]')
       console.log(
         '[design.computer] gemini detectCodeBlocks: found',
@@ -109,14 +128,22 @@ export default defineContentScript({
 
     detectCodeBlocks()
 
-    const observer = new MutationObserver(() => detectCodeBlocks())
+    const observer = new MutationObserver(() => {
+      broadcastStreaming()
+      detectCodeBlocks()
+    })
     observer.observe(document.body, { childList: true, subtree: true })
     ctx.onInvalidated(() => observer.disconnect())
 
     ctx.addEventListener(window, 'wxt:locationchange', ({ newUrl }) => {
       if (appPattern.includes(newUrl)) {
         seen = new WeakSet()
-        statusPromise = fetchStatus()
+        currentChatId = new URL(newUrl).pathname.match(/\/app\/([^/]+)/)?.[1]
+        statusPromise = currentChatId
+          ? sendMessage('checkStatus', { chatId: currentChatId })
+              .then((r) => r.exists)
+              .catch(() => false)
+          : Promise.resolve(false)
         document.querySelectorAll('dc-publish-btn').forEach((el) => el.remove())
         detectCodeBlocks()
       }
