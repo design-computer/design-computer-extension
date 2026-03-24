@@ -46,7 +46,11 @@ interface PanelState {
   // Loading
   statusChecked: boolean
 
+  // Callbacks
+  onClose: (() => void) | null
+
   // Actions
+  setOnClose: (fn: () => void) => void
   setSession: (session: NonNullable<SessionData>) => void
   setSlug: (slug: string) => void
   setDomainOpen: (open: boolean) => void
@@ -93,7 +97,9 @@ export const usePanelStore = create<PanelState>((set, get) => ({
   domainOpen: false,
   userTier: 'free',
   statusChecked: true,
+  onClose: null,
 
+  setOnClose: (fn) => set({ onClose: fn }),
   setSession: (session) => set({ session }),
   setSlug: (slug) => set({ slug }),
   setDomainOpen: (open) => set({ domainOpen: open }),
@@ -172,7 +178,8 @@ export const usePanelStore = create<PanelState>((set, get) => ({
         qrDataUrl,
       })
 
-      fireConfetti?.()
+      // Delay confetti to let React commit the view transition
+      setTimeout(() => fireConfetti?.(), 100)
       document.dispatchEvent(new CustomEvent('__dc_published'))
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Publish failed'

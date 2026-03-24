@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
 import { Switch } from '@/components/ui/switch'
 import { sendMessage } from '@/lib/messaging'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
 
 const AI_SITES = [
   {
@@ -239,82 +240,118 @@ export default function App() {
       result[site.id] = await browser.permissions.contains({ origins: [site.origin] })
     }
     setAlreadyGranted(result)
-    // If some are already granted, reflect that in toggles
-    setSelected((prev) => {
-      const next = { ...prev }
-      for (const [id, granted] of Object.entries(result)) {
-        if (granted) next[id] = true
-      }
-      return next
-    })
+    // Sync toggles with actual permission state
+    setSelected(result)
   }
 
   function toggleSite(id: string) {
-    // Don't allow toggling off already-granted permissions from this UI
-    // They can revoke from Chrome's extension settings
-    if (alreadyGranted[id]) return
     setSelected((prev) => ({ ...prev, [id]: !prev[id] }))
   }
 
-  async function handleAllow() {
-    const origins = AI_SITES.filter((s) => selected[s.id] && !alreadyGranted[s.id]).map(
+  async function handleSave() {
+    // Grant new permissions
+    const toGrant = AI_SITES.filter((s) => selected[s.id] && !alreadyGranted[s.id]).map(
       (s) => s.origin,
     )
-    // Always include design.computer
-    origins.push('https://my.design.computer/*')
-    const ok = await browser.permissions.request({ origins })
-    if (ok) {
-      // Tell background to register content scripts for newly granted permissions
-      try {
-        await sendMessage('registerContentScripts', undefined)
-      } catch {
-        /* ignore */
-      }
-      await checkPermissions()
-      setShowSuccess(true)
-      setTimeout(() => setShowSuccess(false), 3000)
+    // Revoke removed permissions
+    const toRevoke = AI_SITES.filter((s) => !selected[s.id] && alreadyGranted[s.id]).map(
+      (s) => s.origin,
+    )
+
+    if (toGrant.length > 0) {
+      toGrant.push('https://my.design.computer/*')
+      const ok = await browser.permissions.request({ origins: toGrant })
+      if (!ok) return
     }
+
+    if (toRevoke.length > 0) {
+      await browser.permissions.remove({ origins: toRevoke })
+    }
+
+    // Tell background to re-register content scripts
+    try {
+      await sendMessage('registerContentScripts', undefined)
+    } catch {
+      /* ignore */
+    }
+    await checkPermissions()
+    setShowSuccess(true)
+    setTimeout(() => setShowSuccess(false), 3000)
   }
 
   const allSelected = AI_SITES.every((s) => selected[s.id])
-  const allAlreadyGranted = AI_SITES.every((s) => alreadyGranted[s.id])
-  const hasNewSelections = AI_SITES.some((s) => selected[s.id] && !alreadyGranted[s.id])
+  const hasChanges = AI_SITES.some(
+    (s) => (selected[s.id] && !alreadyGranted[s.id]) || (!selected[s.id] && alreadyGranted[s.id]),
+  )
 
   return (
-    <div className="flex items-center justify-center p-4">
+    <div className="flex items-center justify-center p-4 overflow-y-hidden">
       <div className="w-[350px] rounded-[20px] p-1.5 flex flex-col gap-3">
         {/* Header */}
         <div className="flex flex-col gap-2 p-3">
-          <h2 className="text-lg font-medium text-black tracking-[-0.01em] leading-6">
-            Enable Publishing
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-medium text-black tracking-[-0.01em] leading-6">
+              Enable Publishing
+            </h2>
+
+            <a
+              href="https://my.design.computer"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 no-underline cursor-pointer"
+              style={{
+                color: '#3689FF',
+                fontSize: 18,
+                lineHeight: '24px',
+                letterSpacing: '-0.01em',
+                fontWeight: 500,
+              }}
+            >
+              <span>Sign up</span>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M7 7H17M17 7V17M17 7L7 17"
+                  stroke="#3689FF"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </a>
+          </div>
           <p className="text-base font-medium text-[#999] tracking-[-0.01em] leading-[22px]">
             We only access the code you choose to share, the rest is private.
           </p>
 
-          {showSuccess && (
-            <p className="text-sm font-medium text-[#00c274] tracking-[-0.01em] leading-5">
-              Permissions saved. You're all set!
-            </p>
-          )}
+          <AnimatePresence>
+            {showSuccess && (
+              <motion.p
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="text-sm font-medium text-[#00c274] tracking-[-0.01em] leading-5 overflow-hidden"
+              >
+                Permissions saved. You're all set!
+              </motion.p>
+            )}
+          </AnimatePresence>
 
           {/* Action button */}
-          {!allAlreadyGranted && (
-            <button
-              className={`w-full border-none rounded-[14px] py-2 px-4 flex items-center justify-center gap-3 ${hasNewSelections ? 'bg-black cursor-pointer' : 'bg-[#ccc] cursor-default'}`}
-              onClick={handleAllow}
-              disabled={!hasNewSelections}
-            >
-              {allSelected && (
-                <span className="text-sm font-medium text-[#999] tracking-[-0.01em]">
-                  Recommended
-                </span>
-              )}
-              <span className="text-sm font-medium text-white tracking-[-0.01em]">
-                {allSelected ? 'Allow All Sites' : 'Allow Selected'}
+          <button
+            className={`w-full border-none rounded-[14px] py-2 px-4 flex items-center justify-center gap-3 ${hasChanges ? 'bg-black cursor-pointer' : 'bg-[#ccc] cursor-default'}`}
+            onClick={handleSave}
+            disabled={!hasChanges}
+          >
+            {allSelected && hasChanges && (
+              <span className="text-sm font-medium text-[#999] tracking-[-0.01em]">
+                Recommended
               </span>
-            </button>
-          )}
+            )}
+            <span className="text-sm font-medium text-white tracking-[-0.01em]">
+              {hasChanges ? (allSelected ? 'Allow All Sites' : 'Save Changes') : 'Saved'}
+            </span>
+          </button>
         </div>
 
         {/* Site list */}

@@ -1,6 +1,6 @@
-import { AnimatePresence, motion } from 'framer-motion'
 import { CheckIcon, CopyIcon, GlobeIcon, QrIcon } from '@/entrypoints/panel.content/icons'
 import { usePanelStore } from '@/entrypoints/panel.content/store'
+import { AnimatePresence, motion } from 'framer-motion'
 
 export function PublishedView() {
   const slug = usePanelStore((s) => s.slug)
@@ -11,6 +11,7 @@ export function PublishedView() {
   const copied = usePanelStore((s) => s.copied)
   const toggleQr = usePanelStore((s) => s.toggleQr)
   const copyUrl = usePanelStore((s) => s.copyUrl)
+  const onClose = usePanelStore((s) => s.onClose)
 
   return (
     <motion.div
@@ -109,8 +110,8 @@ export function PublishedView() {
 
         {/* Done button */}
         <button
-          disabled
-          className="w-full bg-[#ccc] text-white border-none rounded-[14px] py-2 px-4 text-sm font-medium tracking-[-0.01em] leading-6 text-center cursor-default"
+          onClick={() => onClose?.()}
+          className="w-full bg-[#ccc] text-white border-none rounded-[14px] py-2 px-4 text-sm font-medium tracking-[-0.01em] leading-6 text-center cursor-pointer hover:bg-[#bbb] transition-colors duration-200 ease-in-out"
         >
           Done
         </button>

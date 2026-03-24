@@ -22,20 +22,16 @@ export function Panel({
   const [session, setSession] = useState<SessionData | undefined>(prefetchedSession ?? undefined)
   const [loggedOut, setLoggedOut] = useState(false)
   const [loading, setLoading] = useState(!initialSuccess && !prefetchedSession)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const confettiRef = useRef<confetti.CreateTypes | null>(null)
-
-  useEffect(() => {
-    if (canvasRef.current && !confettiRef.current) {
-      confettiRef.current = confetti.create(canvasRef.current, { resize: true })
-    }
-    return () => {
-      confettiRef.current?.reset()
+  const canvasRef = useCallback((node: HTMLCanvasElement | null) => {
+    if (node && !confettiRef.current) {
+      confettiRef.current = confetti.create(node, { resize: true })
     }
   }, [])
 
   const fireConfetti = useCallback(() => {
     const fire = confettiRef.current
+    console.log('[design.computer] fireConfetti called, fire:', !!fire)
     if (!fire) return
     fire({
       particleCount: 80,
@@ -104,18 +100,28 @@ export function Panel({
   let viewContent: React.ReactNode
 
   if (initialSuccess) {
-    const s = initialSuccess.session ?? session ?? { user: { id: '', name: '', email: '' } }
-    viewKey = 'success'
-    console.log('[design.computer] Panel view: success', { slug: initialSuccess.slug })
-    viewContent = (
-      <LoggedInView
-        session={s as NonNullable<SessionData>}
-        onClose={onClose}
-        onLogout={() => setLoggedOut(true)}
-        initialSuccess={initialSuccess}
-        fireConfetti={fireConfetti}
-      />
-    )
+    const s = initialSuccess.session ?? session
+    if (!loading && !s) {
+      // Not logged in
+      viewKey = 'logged-out'
+      viewContent = <LoggedOutView onClose={onClose} />
+    } else if (!s || !s.user?.name) {
+      // Session not ready yet — wait for it
+      viewKey = 'loading'
+      viewContent = null
+    } else {
+      viewKey = 'success'
+      console.log('[design.computer] Panel view: success', { slug: initialSuccess.slug })
+      viewContent = (
+        <LoggedInView
+          session={s as NonNullable<SessionData>}
+          onClose={onClose}
+          onLogout={() => setLoggedOut(true)}
+          initialSuccess={initialSuccess}
+          fireConfetti={fireConfetti}
+        />
+      )
+    }
   } else if (loggedOut || (!loading && !session)) {
     viewKey = 'logged-out'
     console.log('[design.computer] Panel view: logged-out', { loggedOut, loading, session })
