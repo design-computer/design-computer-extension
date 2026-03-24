@@ -28,6 +28,11 @@
   animation: dc-spin 1s linear infinite;
 }
 
+button,
+a[href] {
+  transition: opacity 0.2s ease;
+}
+
 button:hover:not(:disabled),
 a[href]:hover {
   opacity: 0.8;
