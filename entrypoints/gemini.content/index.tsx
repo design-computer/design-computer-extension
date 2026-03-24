@@ -79,7 +79,9 @@ export default defineContentScript({
       const hasExisting = await statusPromise
       const chatId = getChatId()
 
-      const buttonsDiv = codeContainer.querySelector('.code-block-decoration .buttons')
+      const buttonsDiv =
+        codeContainer.querySelector('.buttons') ||
+        codeContainer.querySelector('.code-block-decoration .buttons')
       const anchor = buttonsDiv || codeContainer
 
       const ui = await createShadowRootUi(ctx, {
@@ -97,7 +99,7 @@ export default defineContentScript({
               hasExisting={hasExisting}
               getCode={() => codeEl.textContent ?? ''}
               getLanguage={() => detectLanguage(codeContainer)}
-              size="small"
+              size="default"
             />,
           )
           return root
@@ -108,7 +110,6 @@ export default defineContentScript({
       })
       ui.mount()
 
-      // Prepend instead of default append and ensure parent is flex row
       if (buttonsDiv) {
         ;(buttonsDiv as HTMLElement).style.display = 'flex'
         ;(buttonsDiv as HTMLElement).style.alignItems = 'center'

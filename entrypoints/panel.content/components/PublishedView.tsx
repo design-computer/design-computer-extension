@@ -111,7 +111,7 @@ export function PublishedView() {
         {/* Done button */}
         <button
           onClick={() => onClose?.()}
-          className="w-full bg-[#ccc] text-white border-none rounded-[14px] py-2 px-4 text-sm font-medium tracking-[-0.01em] leading-6 text-center cursor-pointer hover:bg-[#bbb] transition-colors duration-200 ease-in-out"
+          className="w-full bg-[#ccc] text-white border-none rounded-[14px] py-2 px-4 text-sm font-medium tracking-[-0.01em] leading-6 text-center cursor-pointer"
         >
           Done
         </button>
