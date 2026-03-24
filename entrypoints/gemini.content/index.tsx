@@ -129,6 +129,10 @@ export default defineContentScript({
 
     detectCodeBlocks()
 
+    document.addEventListener('__dc_published', () => {
+      statusPromise = Promise.resolve(true)
+    })
+
     const observer = new MutationObserver(() => {
       broadcastStreaming()
       detectCodeBlocks()

@@ -22,6 +22,11 @@ export function Panel({
   const [session, setSession] = useState<SessionData | undefined>(prefetchedSession ?? undefined)
   const [loggedOut, setLoggedOut] = useState(false)
   const [loading, setLoading] = useState(!initialSuccess && !prefetchedSession)
+  const [closing, setClosing] = useState(false)
+
+  const handleClose = useCallback(() => {
+    setClosing(true)
+  }, [])
   const confettiRef = useRef<confetti.CreateTypes | null>(null)
   const canvasRef = useCallback((node: HTMLCanvasElement | null) => {
     if (node && !confettiRef.current) {
@@ -104,7 +109,7 @@ export function Panel({
     if (!loading && !s) {
       // Not logged in
       viewKey = 'logged-out'
-      viewContent = <LoggedOutView onClose={onClose} />
+      viewContent = <LoggedOutView onClose={handleClose} />
     } else if (!s || !s.user?.name) {
       // Session not ready yet — wait for it
       viewKey = 'loading'
@@ -115,7 +120,7 @@ export function Panel({
       viewContent = (
         <LoggedInView
           session={s as NonNullable<SessionData>}
-          onClose={onClose}
+          onClose={handleClose}
           onLogout={() => setLoggedOut(true)}
           initialSuccess={initialSuccess}
           fireConfetti={fireConfetti}
@@ -135,7 +140,7 @@ export function Panel({
     viewContent = (
       <LoggedInView
         session={session!}
-        onClose={onClose}
+        onClose={handleClose}
         onLogout={() => setLoggedOut(true)}
         initialCode={initialCode}
         initialSuccess={initialSuccess}
@@ -147,8 +152,11 @@ export function Panel({
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9, transformOrigin: 'top right' }}
-      animate={{ opacity: 1, scale: 1 }}
+      animate={closing ? { opacity: 0, scale: 0.95 } : { opacity: 1, scale: 1 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
+      onAnimationComplete={() => {
+        if (closing) onClose()
+      }}
       className={`relative m-4 w-[280px] bg-white rounded-[20px] shadow-[0_8px_32px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] flex flex-col gap-3 overflow-hidden font-sans ${viewContent && statusChecked ? 'p-1.5' : 'p-0'}`}
     >
       <canvas
