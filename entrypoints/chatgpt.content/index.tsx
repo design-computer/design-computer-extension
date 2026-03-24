@@ -150,6 +150,10 @@ export default defineContentScript({
 
     detectCodeBlocks()
 
+    document.addEventListener('__dc_published', () => {
+      statusPromise = Promise.resolve(true)
+    })
+
     let wasStreaming = false
     const observer = new MutationObserver(() => {
       const streaming = isStreaming()

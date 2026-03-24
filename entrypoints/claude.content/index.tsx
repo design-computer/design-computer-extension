@@ -165,6 +165,7 @@ export default defineContentScript({
       const copyBtn = panel.querySelector('button.rounded-l-lg')
       const anchor = copyBtn?.parentElement?.parentElement?.parentElement
       if (!anchor) return
+      if (anchor.querySelector('dc-publish-btn')) return
 
       const ui = await createShadowRootUi(ctx, {
         name: 'dc-publish-btn',
@@ -271,6 +272,75 @@ export default defineContentScript({
       ui.mount()
     }
 
+    // --- Inline code blocks (non-artifact) ---
+
+    let seenInlineBlocks = new WeakSet<Element>()
+
+    function getInlineCodeBlocks(): Element[] {
+      return Array.from(document.querySelectorAll('div[role="group"][aria-label*="code"]'))
+    }
+
+    function detectInlineLanguage(block: Element): string {
+      // Language label is a div with text like "html", "css", etc.
+      const label = block.querySelector('.text-text-500')?.textContent?.trim().toLowerCase()
+      if (label && /^[a-z]+$/.test(label)) return label
+      // Also check the code element's class
+      const codeEl = block.querySelector('code[class*="language-"]')
+      const langClass = codeEl?.className.match(/language-(\w+)/)?.[1]
+      if (langClass) return langClass
+      return 'plaintext'
+    }
+
+    async function injectInlineButton(block: Element) {
+      if (seenInlineBlocks.has(block)) return
+      // Skip if this block already has a publish button (could be an artifact panel too)
+      if (
+        block.querySelector('dc-publish-btn') ||
+        block.closest('.flex.flex-col.h-full.overflow-hidden')?.querySelector('dc-publish-btn')
+      )
+        return
+      seenInlineBlocks.add(block)
+
+      // Find the copy button's container to place our button next to it
+      const copyBtn = block.querySelector('button[aria-label="Copy to clipboard"]')
+      const buttonsContainer = copyBtn?.parentElement
+      if (!buttonsContainer) return
+      if (buttonsContainer.querySelector('dc-publish-btn')) return
+
+      const hasExisting = await statusPromise
+      const chatId = getChatId()
+
+      const ui = await createShadowRootUi(ctx, {
+        name: 'dc-publish-btn',
+        position: 'inline',
+        anchor: buttonsContainer,
+        isolateEvents: ['click', 'mousedown', 'pointerdown'],
+        onMount(container) {
+          const app = document.createElement('div')
+          container.append(app)
+          const root = ReactDOM.createRoot(app)
+          root.render(
+            <PublishButton
+              chatId={chatId}
+              chatUrl={location.href}
+              hasExisting={hasExisting}
+              getCode={() => {
+                const codeEl = block.querySelector('pre code')
+                return codeEl?.textContent ?? ''
+              }}
+              getLanguage={() => detectInlineLanguage(block)}
+            />,
+          )
+          return root
+        },
+        onRemove(root) {
+          root?.unmount()
+        },
+      })
+      ui.mount()
+      buttonsContainer.prepend(ui.shadow.host)
+    }
+
     // --- Shared helpers ---
 
     function waitForElement(
@@ -302,12 +372,18 @@ export default defineContentScript({
     function detect() {
       const panels = getArtifactPanels()
       const rows = getArtifactRows()
-      console.log('[design.computer] claude detect: panels=', panels.length, 'rows=', rows.length)
+      const inlineBlocks = getInlineCodeBlocks()
       panels.forEach((panel) => injectPanelButton(panel))
       rows.forEach((row) => injectRowButton(row))
+      inlineBlocks.forEach((block) => injectInlineButton(block))
     }
 
     detect()
+
+    // When a publish happens, new buttons should know a project exists
+    document.addEventListener('__dc_published', () => {
+      statusPromise = Promise.resolve(true)
+    })
 
     const observer = new MutationObserver(() => {
       broadcastStreaming()
@@ -319,6 +395,7 @@ export default defineContentScript({
     ctx.addEventListener(window, 'wxt:locationchange', ({ newUrl }) => {
       seenPanels = new WeakSet()
       seenRows = new WeakSet()
+      seenInlineBlocks = new WeakSet()
       currentChatId = new URL(newUrl).pathname.match(/\/chat\/([^/]+)/)?.[1]
       statusPromise = fetchStatus()
       // Remove old buttons so they re-render with correct Publish/Update
