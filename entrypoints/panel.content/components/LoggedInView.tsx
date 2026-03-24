@@ -26,10 +26,12 @@ export function LoggedInView({
   const publishState = usePanelStore((s) => s.publishState)
   const statusChecked = usePanelStore((s) => s.statusChecked)
   const setSession = usePanelStore((s) => s.setSession)
+  const setOnClose = usePanelStore((s) => s.setOnClose)
   const init = usePanelStore((s) => s.init)
 
   useEffect(() => {
     setSession(session)
+    setOnClose(onClose)
     init({ initialCode, initialSuccess })
   }, [])
 

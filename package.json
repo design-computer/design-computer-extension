@@ -2,7 +2,7 @@
   "name": "get-design",
   "description": "Publish code from ChatGPT, Claude, and Gemini to a live URL in one click.",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.4",
   "type": "module",
   "scripts": {
     "dev": "wxt",
