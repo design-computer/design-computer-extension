@@ -64,11 +64,12 @@ export default defineContentScript({
     /** Find the toolbar buttons container inside a code block */
     function getToolbarButtons(block: Element): Element | null {
       // ChatGPT's code block toolbar: the buttons row is inside a sticky header
-      // Look for the flex row containing the copy/edit buttons (justify-self-end container)
       const buttonsRow = block.querySelector('div[class*="sticky"] div[class*="justify-self-end"]')
       if (buttonsRow) return buttonsRow
-      // Fallback: first button's parent
-      return block.querySelector('button')?.parentElement ?? null
+      // Fallback: find copy button by aria-label, use its parent container
+      const copyBtn = block.querySelector('button[aria-label*="opy"]')
+      const container = copyBtn?.closest('div[class*="justify-self-end"]')
+      return container ?? null
     }
 
     function flushPending() {
@@ -89,7 +90,17 @@ export default defineContentScript({
     }
 
     function detectCodeBlocks() {
-      const blocks = document.querySelectorAll('pre[data-start]')
+      const blocks = new Set<Element>()
+
+      // Primary: pre with data-start (fully rendered code blocks)
+      document.querySelectorAll('pre[data-start]').forEach((b) => blocks.add(b))
+
+      // Fallback: pre containing CodeMirror editor (catches blocks before data-start is set)
+      document.querySelectorAll('.cm-content').forEach((cm) => {
+        const pre = cm.closest('pre')
+        if (pre) blocks.add(pre)
+      })
+
       blocks.forEach((block) => {
         if (seen.has(block) || pending.has(block)) return
         pending.add(block)
@@ -150,10 +161,10 @@ export default defineContentScript({
       const streaming = isStreaming()
       broadcastStreaming()
       detectCodeBlocks()
-      // When streaming just ended, flush any pending blocks that were waiting
-      if (wasStreaming && !streaming && pending.size > 0) {
-        // Delay to let toolbars render after streaming ends
-        setTimeout(() => flushPending(), 500)
+      // When streaming just ended, re-detect with retries to catch late-rendered blocks
+      if (wasStreaming && !streaming) {
+        setTimeout(() => detectCodeBlocks(), 500)
+        setTimeout(() => detectCodeBlocks(), 1500)
       }
       wasStreaming = streaming
     })
