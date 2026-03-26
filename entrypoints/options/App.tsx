@@ -240,8 +240,12 @@ export default function App() {
       result[site.id] = await browser.permissions.contains({ origins: [site.origin] })
     }
     setAlreadyGranted(result)
-    // Sync toggles with actual permission state
-    setSelected(result)
+    // Only sync toggles for sites that have been explicitly granted or revoked
+    // On first install, keep defaults (all ON) so user sees pre-selected switches
+    const anyGranted = Object.values(result).some(Boolean)
+    if (anyGranted) {
+      setSelected(result)
+    }
   }
 
   function toggleSite(id: string) {
@@ -271,8 +275,8 @@ export default function App() {
     // Tell background to re-register content scripts
     try {
       await sendMessage('registerContentScripts', undefined)
-    } catch {
-      /* ignore */
+    } catch (err) {
+      console.error('[design.computer] register content scripts:', err)
     }
     await checkPermissions()
     setShowSuccess(true)

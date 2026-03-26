@@ -1,5 +1,6 @@
 import QRCode from 'qrcode'
 import { create } from 'zustand'
+import { CODE_SELECTORS } from '@/lib/constants'
 import type { SessionData } from '@/lib/messaging'
 import { sendMessage } from '@/lib/messaging'
 import type {
@@ -111,7 +112,9 @@ export const usePanelStore = create<PanelState>((set, get) => ({
       await navigator.clipboard.writeText(get().publishedUrl)
       set({ copied: true })
       setTimeout(() => set({ copied: false }), 3000)
-    } catch {}
+    } catch (err) {
+      console.error('[design.computer] copy URL to clipboard:', err)
+    }
   },
 
   checkSlug: (value: string) => {
@@ -140,8 +143,7 @@ export const usePanelStore = create<PanelState>((set, get) => ({
       const language = codeData?.language || 'html'
 
       if (!code) {
-        const selectors = ['.code-block__code', 'pre code', '.cm-content', 'code', 'pre']
-        for (const sel of selectors) {
+        for (const sel of CODE_SELECTORS) {
           const el = document.querySelector(sel)
           if (el?.textContent?.trim()) {
             code = el.textContent.trim()
@@ -211,7 +213,7 @@ export const usePanelStore = create<PanelState>((set, get) => ({
         }
         set({ userTier: result.tier })
       })
-      .catch(() => {})
+      .catch((err) => console.error('[design.computer] fetch domains:', err))
 
     // Generate QR for initial success
     if (initialSuccess?.url) {
@@ -247,7 +249,7 @@ export const usePanelStore = create<PanelState>((set, get) => ({
               })
             }
           })
-          .catch(() => {})
+          .catch((err) => console.error('[design.computer] check existing project status:', err))
           .finally(() => set({ statusChecked: true }))
       }
     }

@@ -36,7 +36,6 @@ export function Panel({
 
   const fireConfetti = useCallback(() => {
     const fire = confettiRef.current
-    console.log('[design.computer] fireConfetti called, fire:', !!fire)
     if (!fire) return
     fire({
       particleCount: 80,
@@ -116,7 +115,6 @@ export function Panel({
       viewContent = null
     } else {
       viewKey = 'success'
-      console.log('[design.computer] Panel view: success', { slug: initialSuccess.slug })
       viewContent = (
         <LoggedInView
           session={s as NonNullable<SessionData>}
@@ -129,14 +127,11 @@ export function Panel({
     }
   } else if (loggedOut || (!loading && !session)) {
     viewKey = 'logged-out'
-    console.log('[design.computer] Panel view: logged-out', { loggedOut, loading, session })
     viewContent = <LoggedOutView onClose={onClose} />
   } else if (loading) {
-    console.log('[design.computer] Panel view: loading')
     return null
   } else {
     viewKey = 'logged-in'
-    console.log('[design.computer] Panel view: logged-in', { user: session?.user?.email })
     viewContent = (
       <LoggedInView
         session={session!}

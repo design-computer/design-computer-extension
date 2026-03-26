@@ -11,16 +11,10 @@ export default defineContentScript({
   registration: 'runtime',
 
   async main(ctx) {
-    console.log('[design.computer] gemini content script LOADED')
-
     // Fetch session from web app via background
     sendMessage('getSession', undefined)
-      .then((session) => {
-        console.log('[design.computer] session on Gemini:', session)
-      })
-      .catch((err) => {
-        console.warn('[design.computer] failed to get session:', err)
-      })
+      .then(() => {})
+      .catch((err) => console.error('[design.computer] prefetch session:', err))
 
     let seen = new WeakSet<Element>()
     let currentChatId = location.pathname.match(/\/app\/([^/]+)/)?.[1]
@@ -48,14 +42,6 @@ export default defineContentScript({
     function broadcastStreaming() {
       const streaming = isStreaming()
       if (streaming !== lastStreamingState) {
-        console.log(
-          '[design.computer] gemini streaming:',
-          streaming,
-          'stop-btn:',
-          !!document.querySelector('button.send-button.stop'),
-          'aria:',
-          !!document.querySelector('button[aria-label="Stop generating"]'),
-        )
         lastStreamingState = streaming
         document.dispatchEvent(new CustomEvent('__dc_streaming', { detail: { streaming } }))
       }
@@ -119,20 +105,19 @@ export default defineContentScript({
 
     function detectCodeBlocks() {
       const blocks = document.querySelectorAll('code[data-test-id="code-content"]')
-      console.log(
-        '[design.computer] gemini detectCodeBlocks: found',
-        blocks.length,
-        'code elements',
-      )
       blocks.forEach((el) => injectButton(el))
     }
 
     detectCodeBlocks()
 
-    document.addEventListener('__dc_published', () => {
+    const onPublished = () => {
       statusPromise = Promise.resolve(true)
-    })
+    }
+    document.addEventListener('__dc_published', onPublished)
+    ctx.onInvalidated(() => document.removeEventListener('__dc_published', onPublished))
 
+    // TODO: Throttle with requestAnimationFrame — this callback fires on every DOM
+    // mutation (hundreds/sec during streaming) and runs querySelectorAll each time.
     const observer = new MutationObserver(() => {
       broadcastStreaming()
       detectCodeBlocks()

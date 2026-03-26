@@ -38,7 +38,9 @@ export function LoggedInView({
   const handleLogout = async () => {
     try {
       await sendMessage('logout', undefined)
-    } catch {}
+    } catch (err) {
+      console.error('[design.computer] logout:', err)
+    }
     onLogout()
   }
 

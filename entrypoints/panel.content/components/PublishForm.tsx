@@ -61,15 +61,6 @@ export function PublishForm({
   const publishDisabled =
     isPublishing || isPublished || slugStatus === 'taken' || slugStatus === 'checking'
 
-  const UrlIcon =
-    isPublishing || slugStatus === 'checking'
-      ? () => <SpinnerIcon spin />
-      : slugStatus === 'available'
-        ? SmileIcon
-        : slugStatus === 'taken' || isError
-          ? SadIcon
-          : GlobeIcon
-
   return (
     <motion.div
       key="form"
@@ -87,7 +78,15 @@ export function PublishForm({
         <div
           className={`flex items-center gap-1.5 bg-surface rounded-[14px] px-3 py-2 ${borderClass}`}
         >
-          <UrlIcon />
+          {isPublishing || slugStatus === 'checking' ? (
+            <SpinnerIcon spin />
+          ) : slugStatus === 'available' ? (
+            <SmileIcon />
+          ) : slugStatus === 'taken' || isError ? (
+            <SadIcon />
+          ) : (
+            <GlobeIcon />
+          )}
           <input
             type="text"
             value={slug}
