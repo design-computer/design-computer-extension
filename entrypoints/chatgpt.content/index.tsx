@@ -9,16 +9,10 @@ export default defineContentScript({
   registration: 'runtime',
 
   async main(ctx) {
-    console.log('[design.computer] chatgpt content script LOADED')
-
     // Fetch session from web app via background
     sendMessage('getSession', undefined)
-      .then((session) => {
-        console.log('[design.computer] session on ChatGPT:', session)
-      })
-      .catch((err) => {
-        console.warn('[design.computer] failed to get session:', err)
-      })
+      .then(() => {})
+      .catch((err) => console.error('[design.computer] prefetch session:', err))
 
     let seen = new WeakSet<Element>()
     const pending = new Set<Element>()
@@ -96,11 +90,6 @@ export default defineContentScript({
 
     function detectCodeBlocks() {
       const blocks = document.querySelectorAll('pre[data-start]')
-      console.log(
-        '[design.computer] chatgpt detectCodeBlocks: found',
-        blocks.length,
-        'pre[data-start] elements',
-      )
       blocks.forEach((block) => {
         if (seen.has(block) || pending.has(block)) return
         pending.add(block)
@@ -111,11 +100,9 @@ export default defineContentScript({
     async function injectButton(block: Element) {
       const toolbar = getToolbarButtons(block)
       if (!toolbar) {
-        console.warn('[design.computer] chatgpt injectButton: no toolbar found for block')
         return
       }
       if (toolbar.querySelector('dc-publish-btn')) return
-      console.log('[design.computer] chatgpt injectButton: injecting publish button')
 
       const hasExisting = await statusPromise
       const chatId = getChatId()
@@ -150,10 +137,14 @@ export default defineContentScript({
 
     detectCodeBlocks()
 
-    document.addEventListener('__dc_published', () => {
+    const onPublished = () => {
       statusPromise = Promise.resolve(true)
-    })
+    }
+    document.addEventListener('__dc_published', onPublished)
+    ctx.onInvalidated(() => document.removeEventListener('__dc_published', onPublished))
 
+    // TODO: Throttle with requestAnimationFrame — this callback fires on every DOM
+    // mutation (hundreds/sec during streaming) and runs querySelectorAll each time.
     let wasStreaming = false
     const observer = new MutationObserver(() => {
       const streaming = isStreaming()

@@ -13,8 +13,6 @@ import { codeToHtml } from '../lib/code-to-html'
 const AI_ORIGINS = ['*://claude.ai/*', '*://chatgpt.com/*', '*://gemini.google.com/*']
 
 export default defineBackground(() => {
-  console.log('[design.computer] background active', { id: browser.runtime.id })
-
   // Allow content scripts to access session storage
   browser.storage.session.setAccessLevel({ accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS' })
 
@@ -158,8 +156,8 @@ async function injectPlatformScripts(tabId: number, tabUrl: string) {
   try {
     if (css) await browser.scripting.insertCSS({ target: { tabId }, files: [css] })
     await browser.scripting.executeScript({ target: { tabId }, files: [js] })
-  } catch {
-    /* ignore */
+  } catch (err) {
+    console.error('[design.computer] inject platform scripts:', err)
   }
 }
 
@@ -176,8 +174,8 @@ async function registerGrantedContentScripts() {
     try {
       const existing = await browser.scripting.getRegisteredContentScripts({ ids: [id] })
       if (existing.length > 0) continue
-    } catch {
-      /* ignore */
+    } catch (err) {
+      console.error('[design.computer] check registered content scripts:', err)
     }
 
     try {
@@ -190,8 +188,8 @@ async function registerGrantedContentScripts() {
           runAt: 'document_idle',
         },
       ])
-    } catch {
-      /* ignore */
+    } catch (err) {
+      console.error('[design.computer] register content script:', err)
     }
   }
 
@@ -211,12 +209,12 @@ async function registerGrantedContentScripts() {
         try {
           await browser.scripting.insertCSS({ target: { tabId: tab.id }, files: [files.css] })
           await browser.scripting.executeScript({ target: { tabId: tab.id }, files: [files.js] })
-        } catch {
-          /* ignore */
+        } catch (err) {
+          console.error('[design.computer] inject scripts into open tab:', err)
         }
       }
-    } catch {
-      /* ignore */
+    } catch (err) {
+      console.error('[design.computer] query open tabs for injection:', err)
     }
   }
 }

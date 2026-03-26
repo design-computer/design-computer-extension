@@ -1,6 +1,7 @@
 import '../../lib/publish-button.css'
 import ReactDOM from 'react-dom/client'
 import { PublishButton } from '../../components/PublishButton'
+import { CODE_SELECTORS } from '../../lib/constants'
 import { sendMessage } from '../../lib/messaging'
 
 export default defineContentScript({
@@ -9,16 +10,10 @@ export default defineContentScript({
   registration: 'runtime',
 
   async main(ctx) {
-    console.log('[design.computer] claude content script LOADED')
-
     // Fetch session from web app via background
     sendMessage('getSession', undefined)
-      .then((session) => {
-        console.log('[design.computer] session on Claude:', session)
-      })
-      .catch((err) => {
-        console.warn('[design.computer] failed to get session:', err)
-      })
+      .then(() => {})
+      .catch((err) => console.error('[design.computer] prefetch session:', err))
 
     let seenPanels = new WeakSet<Element>()
     let seenRows = new WeakSet<Element>()
@@ -61,8 +56,6 @@ export default defineContentScript({
         .filter((el): el is Element => el !== null)
     }
 
-    const CODE_SELECTORS = ['.code-block__code', 'pre code', '.cm-content', 'code', 'pre']
-
     function findCodeElement(parent: Element): Element | null {
       for (const sel of CODE_SELECTORS) {
         const el = parent.querySelector(sel)
@@ -88,15 +81,16 @@ export default defineContentScript({
 
         // Restore original clipboard
         if (saved !== null) {
-          await navigator.clipboard.writeText(saved).catch(() => {})
+          await navigator.clipboard
+            .writeText(saved)
+            .catch((err) => console.error('[design.computer] restore clipboard:', err))
         }
 
         if (code?.trim()) {
-          console.log('[design.computer] read code via clipboard:', code.length, 'chars')
           return code
         }
       } catch (err) {
-        console.warn('[design.computer] clipboard read failed:', err)
+        console.error('[design.computer] read code via clipboard:', err)
       }
       return null
     }
@@ -130,14 +124,6 @@ export default defineContentScript({
 
       const codeEl = findCodeElement(panel)
       const code = codeEl?.textContent ?? ''
-
-      console.log(
-        '[design.computer] readCode fallback:',
-        code.length,
-        'chars, selector:',
-        codeEl?.tagName,
-        codeEl?.className,
-      )
 
       if (wasPreview && previewTab) {
         previewTab.click()
@@ -381,10 +367,14 @@ export default defineContentScript({
     detect()
 
     // When a publish happens, new buttons should know a project exists
-    document.addEventListener('__dc_published', () => {
+    const onPublished = () => {
       statusPromise = Promise.resolve(true)
-    })
+    }
+    document.addEventListener('__dc_published', onPublished)
+    ctx.onInvalidated(() => document.removeEventListener('__dc_published', onPublished))
 
+    // TODO: Throttle with requestAnimationFrame — this callback fires on every DOM
+    // mutation (hundreds/sec during streaming) and runs querySelectorAll each time.
     const observer = new MutationObserver(() => {
       broadcastStreaming()
       detect()
