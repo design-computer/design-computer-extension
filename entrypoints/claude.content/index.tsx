@@ -64,57 +64,60 @@ export default defineContentScript({
       return null
     }
 
-    async function readCodeViaClipboard(panel: Element): Promise<string | null> {
+    async function readCodeViaClipboardIntercept(panel: Element): Promise<string | null> {
+      // Click Claude's copy button and intercept the clipboard write via injected page script
       const copyBtn = panel.querySelector('button.rounded-l-lg') as HTMLButtonElement | null
       if (!copyBtn) return null
 
-      try {
-        // Save current clipboard
-        const saved = await navigator.clipboard.readText().catch(() => null)
-
-        // Click Claude's Copy button
-        copyBtn.click()
-        await new Promise((r) => setTimeout(r, 200))
-
-        // Read the code
-        const code = await navigator.clipboard.readText()
-
-        // Restore original clipboard
-        if (saved !== null) {
-          await navigator.clipboard
-            .writeText(saved)
-            .catch((err) => console.error('[design.computer] restore clipboard:', err))
+      return new Promise<string | null>((resolve) => {
+        let resolved = false
+        const handler = (e: Event) => {
+          if (resolved) return
+          resolved = true
+          document.removeEventListener('__dc_clipboard_capture', handler)
+          resolve((e as CustomEvent).detail?.text || null)
         }
+        document.addEventListener('__dc_clipboard_capture', handler)
 
-        if (code?.trim()) {
-          return code
-        }
-      } catch (err) {
-        console.error('[design.computer] read code via clipboard:', err)
-      }
-      return null
+        // Inject page-context script to intercept navigator.clipboard.writeText
+        // Extension resources bypass page CSP
+        const script = document.createElement('script')
+        script.src = browser.runtime.getURL('/clipboard-intercept.js')
+        document.head.appendChild(script)
+        script.remove()
+
+        // Give the script time to load and patch, then click
+        setTimeout(() => copyBtn.click(), 50)
+
+        // Timeout fallback
+        setTimeout(() => {
+          if (resolved) return
+          resolved = true
+          document.removeEventListener('__dc_clipboard_capture', handler)
+          resolve(null)
+        }, 2000)
+      })
     }
 
     async function readCode(panel: Element): Promise<string> {
-      // Primary: click Claude's Copy button, read from clipboard, restore original
-      const clipboardCode = await readCodeViaClipboard(panel)
-      if (clipboardCode?.trim()) return clipboardCode
-
-      // Fallback: try reading from DOM
       const codeTab = panel.querySelector('button[aria-label="Code"]') as HTMLButtonElement | null
       const previewTab = panel.querySelector(
         'button[aria-label="Preview"]',
       ) as HTMLButtonElement | null
       const wasPreview = previewTab?.getAttribute('data-state') === 'on'
 
-      // Switch to Code tab
+      // Switch to Code tab if on Preview
       if (wasPreview && codeTab) {
         codeTab.click()
         await new Promise<void>((resolve) => {
           let tries = 0
           const interval = setInterval(() => {
             tries++
-            if (findCodeElement(panel) || tries > 30) {
+            if (
+              findCodeElement(panel) ||
+              panel.querySelector('#wiggle-file-content') ||
+              tries > 30
+            ) {
               clearInterval(interval)
               resolve()
             }
@@ -122,6 +125,14 @@ export default defineContentScript({
         })
       }
 
+      // Primary: intercept clipboard write from Claude's copy button (no clipboardRead needed)
+      const clipboardCode = await readCodeViaClipboardIntercept(panel)
+      if (clipboardCode?.trim()) {
+        if (wasPreview && previewTab) previewTab.click()
+        return clipboardCode
+      }
+
+      // Fallback: read from DOM
       const codeEl = findCodeElement(panel)
       const code = codeEl?.textContent ?? ''
 
