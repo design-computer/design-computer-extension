@@ -52,7 +52,12 @@ export default defineContentScript({
 
     function getArtifactPanels(): Element[] {
       return Array.from(document.querySelectorAll('button[aria-label="Code"]'))
-        .map((btn) => btn.closest('.flex.flex-col.h-full.overflow-hidden'))
+        .map(
+          (btn) =>
+            btn.closest('div.flex.h-full.flex-col.relative') ||
+            btn.closest('.flex.flex-col.h-full.overflow-hidden') ||
+            btn.closest('div.flex.flex-col.h-full'),
+        )
         .filter((el): el is Element => el !== null)
     }
 
@@ -293,7 +298,7 @@ export default defineContentScript({
       // Skip if this block already has a publish button (could be an artifact panel too)
       if (
         block.querySelector('dc-publish-btn') ||
-        block.closest('.flex.flex-col.h-full.overflow-hidden')?.querySelector('dc-publish-btn')
+        block.closest('div.flex.flex-col.h-full')?.querySelector('dc-publish-btn')
       )
         return
       seenInlineBlocks.add(block)
