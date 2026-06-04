@@ -61,6 +61,20 @@ export default defineContentScript({
         .filter((el): el is Element => el !== null)
     }
 
+    function findCopyButton(panel: Element): HTMLButtonElement | null {
+      // New DOM: Copy is the primary button inside a SplitDropdownButton group
+      const splitCopy = panel.querySelector(
+        'div[data-cds="SplitDropdownButton"] button',
+      ) as HTMLButtonElement | null
+      if (splitCopy) return splitCopy
+      // Fallback: match by visible label, then legacy class
+      const byLabel = Array.from(panel.querySelectorAll('button')).find(
+        (b) => b.textContent?.trim() === 'Copy',
+      ) as HTMLButtonElement | undefined
+      if (byLabel) return byLabel
+      return panel.querySelector('button.rounded-l-lg') as HTMLButtonElement | null
+    }
+
     function findCodeElement(parent: Element): Element | null {
       for (const sel of CODE_SELECTORS) {
         const el = parent.querySelector(sel)
@@ -71,7 +85,7 @@ export default defineContentScript({
 
     async function readCodeViaClipboardIntercept(panel: Element): Promise<string | null> {
       // Click Claude's copy button and intercept the clipboard write via injected page script
-      const copyBtn = panel.querySelector('button.rounded-l-lg') as HTMLButtonElement | null
+      const copyBtn = findCopyButton(panel)
       if (!copyBtn) return null
 
       return new Promise<string | null>((resolve) => {
@@ -109,7 +123,10 @@ export default defineContentScript({
       const previewTab = panel.querySelector(
         'button[aria-label="Preview"]',
       ) as HTMLButtonElement | null
-      const wasPreview = previewTab?.getAttribute('data-state') === 'on'
+      const wasPreview =
+        previewTab?.getAttribute('aria-checked') === 'true' ||
+        previewTab?.hasAttribute('data-checked') ||
+        previewTab?.getAttribute('data-state') === 'on'
 
       // Switch to Code tab if on Preview
       if (wasPreview && codeTab) {
@@ -164,8 +181,11 @@ export default defineContentScript({
       const hasExisting = await statusPromise
       const chatId = getChatId()
 
-      const copyBtn = panel.querySelector('button.rounded-l-lg')
-      const anchor = copyBtn?.parentElement?.parentElement?.parentElement
+      const copyBtn = findCopyButton(panel)
+      // New DOM: the right-side toolbar button group holds Copy/Refresh/Go back
+      const anchor =
+        copyBtn?.closest('div.flex.items-center.gap-1.flex-shrink-0') ||
+        copyBtn?.parentElement?.parentElement?.parentElement
       if (!anchor) return
       if (anchor.querySelector('dc-publish-btn')) return
 
