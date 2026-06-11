@@ -83,6 +83,53 @@ export async function checkSlug(slug: string): Promise<{ available: boolean }> {
   return res.json() as Promise<{ available: boolean }>
 }
 
+export interface AssetItem {
+  id: string
+  key: string
+  filename: string
+  mimeType: string
+  size: number
+  createdAt: string
+  url: string
+}
+
+export async function getAssets(): Promise<AssetItem[]> {
+  const res = await fetch(`${WEB_URL}/api/assets`, {
+    credentials: 'include',
+  })
+  if (!res.ok) return []
+  const data = (await res.json()) as { assets: AssetItem[] }
+  return data.assets || []
+}
+
+export async function uploadAsset(
+  filename: string,
+  mimeType: string,
+  dataBase64: string,
+): Promise<{ id: string; key: string; url: string }> {
+  // Reconstruct the file from base64 (messaging is JSON-serialized)
+  const binary = atob(dataBase64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  const blob = new Blob([bytes], { type: mimeType })
+
+  const fd = new FormData()
+  fd.append('file', blob, filename)
+
+  const res = await fetch(`${WEB_URL}/api/assets/upload`, {
+    method: 'POST',
+    credentials: 'include',
+    body: fd,
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }))
+    throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`)
+  }
+
+  return res.json() as Promise<{ id: string; key: string; url: string }>
+}
+
 export async function logout(): Promise<void> {
   await fetch(`${WEB_URL}/api/auth/sign-out`, {
     method: 'POST',

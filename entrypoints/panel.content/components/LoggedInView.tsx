@@ -4,6 +4,7 @@ import type { SessionData } from '@/lib/messaging'
 import { sendMessage } from '@/lib/messaging'
 import { usePanelStore } from '@/entrypoints/panel.content/store'
 import type { CodeData, SuccessData } from '@/entrypoints/panel.content/types'
+import { LibraryView } from './LibraryView'
 import { PublishForm } from './PublishForm'
 import { PublishedView } from './PublishedView'
 import { UserHeader } from './UserHeader'
@@ -24,6 +25,7 @@ export function LoggedInView({
   fireConfetti?: () => void
 }) {
   const publishState = usePanelStore((s) => s.publishState)
+  const activeView = usePanelStore((s) => s.activeView)
   const statusChecked = usePanelStore((s) => s.statusChecked)
   const setSession = usePanelStore((s) => s.setSession)
   const setOnClose = usePanelStore((s) => s.setOnClose)
@@ -48,9 +50,11 @@ export function LoggedInView({
 
   return (
     <>
-      <UserHeader onLogout={handleLogout} />
+      {activeView !== 'library' && <UserHeader onLogout={handleLogout} />}
       <AnimatePresence mode="wait">
-        {publishState === 'published' ? (
+        {activeView === 'library' ? (
+          <LibraryView key="library" />
+        ) : publishState === 'published' ? (
           <PublishedView key="published" />
         ) : (
           <PublishForm key="form" onClose={onClose} fireConfetti={fireConfetti} />

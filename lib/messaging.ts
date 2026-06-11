@@ -59,6 +59,30 @@ export interface SuccessData {
   session?: SessionData
 }
 
+export interface AssetItem {
+  id: string
+  key: string
+  filename: string
+  mimeType: string
+  size: number
+  createdAt: string
+  url: string
+}
+
+export interface UploadAssetData {
+  filename: string
+  mimeType: string
+  // base64-encoded file bytes (chrome.runtime messaging is JSON-serialized,
+  // so File/Blob/ArrayBuffer cannot be passed directly)
+  dataBase64: string
+}
+
+export interface UploadAssetResult {
+  id: string
+  key: string
+  url: string
+}
+
 export const { sendMessage, onMessage } = defineExtensionMessaging<{
   publish(data: PublishData): PublishResult
   checkStatus(data: CheckStatusData): CheckStatusResult
@@ -66,6 +90,8 @@ export const { sendMessage, onMessage } = defineExtensionMessaging<{
   getSession(data: void): SessionData
   getProjects(data: void): ProjectItem[]
   getDomains(data: void): { domains: { domain: string; type: 'burner' | 'vanity' }[]; tier: string }
+  getAssets(data: void): AssetItem[]
+  uploadAsset(data: UploadAssetData): UploadAssetResult
   grantPermissions(data: { origins: string[] }): boolean
   logout(data: void): void
   openPanelWithCode(data: CodeData): void

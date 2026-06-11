@@ -50,7 +50,11 @@ interface PanelState {
   // Callbacks
   onClose: (() => void) | null
 
+  // View
+  activeView: 'main' | 'library'
+
   // Actions
+  setActiveView: (view: 'main' | 'library') => void
   setOnClose: (fn: () => void) => void
   setSession: (session: NonNullable<SessionData>) => void
   setSlug: (slug: string) => void
@@ -98,8 +102,10 @@ export const usePanelStore = create<PanelState>((set, get) => ({
   domainOpen: false,
   userTier: 'free',
   statusChecked: true,
+  activeView: 'main',
   onClose: null,
 
+  setActiveView: (view) => set({ activeView: view }),
   setOnClose: (fn) => set({ onClose: fn }),
   setSession: (session) => set({ session }),
   setSlug: (slug) => set({ slug }),
