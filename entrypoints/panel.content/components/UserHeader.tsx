@@ -27,6 +27,17 @@ export function UserHeader({ onLogout }: { onLogout: () => void }) {
           {session.user.name}
         </p>
       </a>
+      {/* TODO: Library feature hidden for now — re-enable when assets ship
+      <button
+        onClick={() => setActiveView('library')}
+        className="flex items-center gap-1 bg-[#f4f4f4] rounded-[20px] pl-[6px] pr-[10px] py-[6px] h-8 border-none cursor-pointer shrink-0"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        <span className="text-[13px] font-medium text-[#999] tracking-[-0.01em] whitespace-nowrap">Library</span>
+      </button>
+      */}
       <button
         className="flex items-center gap-1 bg-transparent border-none cursor-pointer p-0 shrink-0"
         onClick={onLogout}
