@@ -50,15 +50,45 @@ export default defineContentScript({
 
     // --- Side panel buttons ---
 
+    const panelOf = (el: Element): Element | null =>
+      el.closest('div.flex.h-full.flex-col.relative') ||
+      el.closest('.flex.flex-col.h-full.overflow-hidden') ||
+      el.closest('div.flex.flex-col.h-full')
+
     function getArtifactPanels(): Element[] {
-      return Array.from(document.querySelectorAll('button[aria-label="Code"]'))
-        .map(
-          (btn) =>
-            btn.closest('div.flex.h-full.flex-col.relative') ||
-            btn.closest('.flex.flex-col.h-full.overflow-hidden') ||
-            btn.closest('div.flex.flex-col.h-full'),
-        )
-        .filter((el): el is Element => el !== null)
+      // New DOM: the Preview/Code toggle is a "File view mode" segmented control
+      // (radio spans), no longer a <button aria-label="Code">.
+      const controls = Array.from(
+        document.querySelectorAll(
+          '[data-cds="SegmentedControl"][aria-label="File view mode"], [role="radiogroup"][aria-label="File view mode"]',
+        ),
+      )
+      let panels = controls.map(panelOf).filter((el): el is Element => el !== null)
+
+      // Fallback: legacy DOM used a <button aria-label="Code">.
+      if (panels.length === 0) {
+        panels = Array.from(document.querySelectorAll('button[aria-label="Code"]'))
+          .map(panelOf)
+          .filter((el): el is Element => el !== null)
+      }
+      return panels
+    }
+
+    // The view-mode toggle is a radio span in the new DOM, a button in the old one.
+    function getViewControl(panel: Element, label: 'Preview' | 'Code'): HTMLElement | null {
+      return (panel.querySelector(`[role="radio"][aria-label="${label}"]`) ||
+        panel.querySelector(`button[aria-label="${label}"]`)) as HTMLElement | null
+    }
+
+    function isPreviewActive(panel: Element): boolean {
+      const preview = getViewControl(panel, 'Preview')
+      if (!preview) return false
+      return (
+        preview.getAttribute('aria-checked') === 'true' ||
+        preview.hasAttribute('data-checked') ||
+        preview.getAttribute('data-state') === 'on' ||
+        preview.getAttribute('data-state') === 'checked'
+      )
     }
 
     function findCopyButton(panel: Element): HTMLButtonElement | null {
@@ -119,14 +149,9 @@ export default defineContentScript({
     }
 
     async function readCode(panel: Element): Promise<string> {
-      const codeTab = panel.querySelector('button[aria-label="Code"]') as HTMLButtonElement | null
-      const previewTab = panel.querySelector(
-        'button[aria-label="Preview"]',
-      ) as HTMLButtonElement | null
-      const wasPreview =
-        previewTab?.getAttribute('aria-checked') === 'true' ||
-        previewTab?.hasAttribute('data-checked') ||
-        previewTab?.getAttribute('data-state') === 'on'
+      const codeTab = getViewControl(panel, 'Code')
+      const previewTab = getViewControl(panel, 'Preview')
+      const wasPreview = isPreviewActive(panel)
 
       // Switch to Code tab if on Preview
       if (wasPreview && codeTab) {
