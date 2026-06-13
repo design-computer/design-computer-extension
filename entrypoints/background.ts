@@ -8,6 +8,7 @@ import {
   getDomains,
   getAssets,
   uploadAsset,
+  getTemplates,
   logout,
 } from '../lib/api'
 import { codeToHtml } from '../lib/code-to-html'
@@ -127,6 +128,7 @@ export default defineBackground(() => {
   onMessage('uploadAsset', async ({ data }) =>
     uploadAsset(data.filename, data.mimeType, data.dataBase64),
   )
+  onMessage('getTemplates', async () => getTemplates())
   onMessage('getSession', async () => getSession())
   onMessage('logout', async () => {
     await logout()

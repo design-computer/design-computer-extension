@@ -51,10 +51,10 @@ interface PanelState {
   onClose: (() => void) | null
 
   // View
-  activeView: 'main' | 'library'
+  activeView: 'main' | 'library' | 'templates'
 
   // Actions
-  setActiveView: (view: 'main' | 'library') => void
+  setActiveView: (view: 'main' | 'library' | 'templates') => void
   setOnClose: (fn: () => void) => void
   setSession: (session: NonNullable<SessionData>) => void
   setSlug: (slug: string) => void

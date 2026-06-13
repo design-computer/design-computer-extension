@@ -130,6 +130,43 @@ export async function uploadAsset(
   return res.json() as Promise<{ id: string; key: string; url: string }>
 }
 
+export interface TemplateItem {
+  id: string
+  slug: string
+  name: string
+  description: string
+  content: string
+  coverUrl: string | null
+  isPublic: boolean
+  isOwner: boolean
+}
+
+export async function getTemplates(): Promise<TemplateItem[]> {
+  // Fetch the user's own templates + the public community ones, merge (mine first), dedupe.
+  const [mineRes, publicRes] = await Promise.all([
+    fetch(`${WEB_URL}/api/templates`, { credentials: 'include' }),
+    fetch(`${WEB_URL}/api/templates?scope=public`, { credentials: 'include' }),
+  ])
+
+  const mine = mineRes.ok ? ((await mineRes.json()) as { templates: TemplateItem[] }).templates : []
+  const community = publicRes.ok
+    ? ((await publicRes.json()) as { templates: TemplateItem[] }).templates
+    : []
+
+  const seen = new Set<string>()
+  const merged: TemplateItem[] = []
+  for (const t of [...mine, ...community]) {
+    if (seen.has(t.id)) continue
+    seen.add(t.id)
+    // Cover URLs are app-relative; make them absolute for the content-script context.
+    merged.push({
+      ...t,
+      coverUrl: t.coverUrl ? `${WEB_URL}${t.coverUrl}` : null,
+    })
+  }
+  return merged
+}
+
 export async function logout(): Promise<void> {
   await fetch(`${WEB_URL}/api/auth/sign-out`, {
     method: 'POST',

@@ -4,6 +4,7 @@ import { WEB_URL } from '@/entrypoints/panel.content/types'
 
 export function UserHeader({ onLogout }: { onLogout: () => void }) {
   const session = usePanelStore((s) => s.session)
+  const setActiveView = usePanelStore((s) => s.setActiveView)
   if (!session) return null
 
   return (
@@ -27,6 +28,29 @@ export function UserHeader({ onLogout }: { onLogout: () => void }) {
           {session.user.name}
         </p>
       </a>
+      <button
+        onClick={() => setActiveView('templates')}
+        className="flex items-center gap-1 bg-[#f4f4f4] rounded-[20px] pl-[8px] pr-[10px] py-[6px] h-8 border-none cursor-pointer shrink-0"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#999"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+        <span className="text-[13px] font-medium text-[#999] tracking-[-0.01em] whitespace-nowrap">
+          Templates
+        </span>
+      </button>
       {/* TODO: Library feature hidden for now — re-enable when assets ship
       <button
         onClick={() => setActiveView('library')}

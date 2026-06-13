@@ -5,6 +5,7 @@ import { sendMessage } from '@/lib/messaging'
 import { usePanelStore } from '@/entrypoints/panel.content/store'
 import type { CodeData, SuccessData } from '@/entrypoints/panel.content/types'
 import { LibraryView } from './LibraryView'
+import { TemplatesView } from './TemplatesView'
 import { PublishForm } from './PublishForm'
 import { PublishedView } from './PublishedView'
 import { UserHeader } from './UserHeader'
@@ -50,10 +51,12 @@ export function LoggedInView({
 
   return (
     <>
-      {activeView !== 'library' && <UserHeader onLogout={handleLogout} />}
+      {activeView === 'main' && <UserHeader onLogout={handleLogout} />}
       <AnimatePresence mode="wait">
         {activeView === 'library' ? (
           <LibraryView key="library" />
+        ) : activeView === 'templates' ? (
+          <TemplatesView key="templates" />
         ) : publishState === 'published' ? (
           <PublishedView key="published" />
         ) : (

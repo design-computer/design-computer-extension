@@ -83,6 +83,17 @@ export interface UploadAssetResult {
   url: string
 }
 
+export interface TemplateItem {
+  id: string
+  slug: string
+  name: string
+  description: string
+  content: string
+  coverUrl: string | null
+  isPublic: boolean
+  isOwner: boolean
+}
+
 export const { sendMessage, onMessage } = defineExtensionMessaging<{
   publish(data: PublishData): PublishResult
   checkStatus(data: CheckStatusData): CheckStatusResult
@@ -92,6 +103,7 @@ export const { sendMessage, onMessage } = defineExtensionMessaging<{
   getDomains(data: void): { domains: { domain: string; type: 'burner' | 'vanity' }[]; tier: string }
   getAssets(data: void): AssetItem[]
   uploadAsset(data: UploadAssetData): UploadAssetResult
+  getTemplates(data: void): TemplateItem[]
   grantPermissions(data: { origins: string[] }): boolean
   logout(data: void): void
   openPanelWithCode(data: CodeData): void
