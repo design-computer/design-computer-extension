@@ -1,5 +1,6 @@
 import { Switch } from '@/components/ui/switch'
 import { sendMessage } from '@/lib/messaging'
+import { WEB_URL, WEB_ORIGIN } from '@/lib/config'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 
@@ -263,7 +264,7 @@ export default function App() {
     )
 
     if (toGrant.length > 0) {
-      toGrant.push('https://my.design.computer/*')
+      toGrant.push(WEB_ORIGIN)
       const ok = await browser.permissions.request({ origins: toGrant })
       if (!ok) return
     }
@@ -299,7 +300,7 @@ export default function App() {
             </h2>
 
             <a
-              href="https://my.design.computer"
+              href={WEB_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 no-underline cursor-pointer"

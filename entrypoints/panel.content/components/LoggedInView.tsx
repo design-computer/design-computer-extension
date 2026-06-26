@@ -1,14 +1,11 @@
-import { AnimatePresence } from 'framer-motion'
-import { useEffect } from 'react'
-import type { SessionData } from '@/lib/messaging'
-import { sendMessage } from '@/lib/messaging'
 import { usePanelStore } from '@/entrypoints/panel.content/store'
 import type { CodeData, SuccessData } from '@/entrypoints/panel.content/types'
-import { LibraryView } from './LibraryView'
-import { TemplatesView } from './TemplatesView'
+import type { SessionData } from '@/lib/messaging'
+import { sendMessage } from '@/lib/messaging'
+import { AnimatePresence } from 'framer-motion'
+import { useEffect } from 'react'
 import { PublishForm } from './PublishForm'
 import { PublishedView } from './PublishedView'
-import { UserHeader } from './UserHeader'
 
 export function LoggedInView({
   session,
@@ -26,7 +23,6 @@ export function LoggedInView({
   fireConfetti?: () => void
 }) {
   const publishState = usePanelStore((s) => s.publishState)
-  const activeView = usePanelStore((s) => s.activeView)
   const statusChecked = usePanelStore((s) => s.statusChecked)
   const setSession = usePanelStore((s) => s.setSession)
   const setOnClose = usePanelStore((s) => s.setOnClose)
@@ -51,13 +47,9 @@ export function LoggedInView({
 
   return (
     <>
-      {activeView === 'main' && <UserHeader onLogout={handleLogout} />}
+      {publishState !== 'published' && <></>}
       <AnimatePresence mode="wait">
-        {activeView === 'library' ? (
-          <LibraryView key="library" />
-        ) : activeView === 'templates' ? (
-          <TemplatesView key="templates" />
-        ) : publishState === 'published' ? (
+        {publishState === 'published' ? (
           <PublishedView key="published" />
         ) : (
           <PublishForm key="form" onClose={onClose} fireConfetti={fireConfetti} />

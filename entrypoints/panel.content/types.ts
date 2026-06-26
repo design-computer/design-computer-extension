@@ -1,6 +1,6 @@
 import type { SessionData } from '../../lib/messaging'
 
-export const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'https://my.design.computer'
+export { WEB_URL } from '../../lib/config'
 export const DEFAULT_DOMAIN = 'wip.page'
 
 export interface DomainInfo {

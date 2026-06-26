@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import confetti from 'canvas-confetti'
-import { sendMessage } from '@/lib/messaging'
-import type { SessionData } from '@/lib/messaging'
-import { motion, AnimatePresence } from 'framer-motion'
-import type { CodeData, SuccessData } from '@/entrypoints/panel.content/types'
 import { usePanelStore } from '@/entrypoints/panel.content/store'
-import { LoggedOutView } from './LoggedOutView'
+import type { CodeData, SuccessData } from '@/entrypoints/panel.content/types'
+import type { SessionData } from '@/lib/messaging'
+import { sendMessage } from '@/lib/messaging'
+import confetti from 'canvas-confetti'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { LoggedInView } from './LoggedInView'
+import { LoggedOutView } from './LoggedOutView'
+import { PanelLayout } from './PanelLayout'
 
 export function Panel({
   onClose,
@@ -97,7 +98,10 @@ export function Panel({
       })
   }, [])
 
-  const statusChecked = usePanelStore((s) => s.statusChecked)
+  const publishState = usePanelStore((s) => s.publishState)
+  const resolvedSession = initialSuccess?.session ?? session
+  const avatarImage = resolvedSession?.user?.image ?? null
+  const userName = resolvedSession?.user?.name ?? null
 
   // Determine which view to show
   let viewKey: string
@@ -152,7 +156,7 @@ export function Panel({
       onAnimationComplete={() => {
         if (closing) onClose()
       }}
-      className={`relative m-4 w-[280px] bg-white rounded-[20px] shadow-[0_8px_32px_rgba(0,0,0,0.12),0_0_0_1px_rgba(0,0,0,0.06)] flex flex-col gap-3 overflow-hidden font-sans ${viewContent && statusChecked ? 'p-1.5' : 'p-0'}`}
+      className="relative m-4 w-[280px] bg-[#333333]/80 backdrop-blur-[4px] border border-white/10 rounded-[22px] shadow-[0_8px_32px_rgba(0,0,0,0.28)] overflow-hidden font-sans p-1"
     >
       <canvas
         ref={canvasRef}
@@ -167,7 +171,14 @@ export function Panel({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2, ease: 'easeInOut' }}
         >
-          {viewContent}
+          <PanelLayout
+            avatarImage={avatarImage}
+            userName={userName}
+            showGear={viewKey === 'logged-out'}
+            noCard={viewKey !== 'logged-out' && publishState === 'published'}
+          >
+            {viewContent}
+          </PanelLayout>
         </motion.div>
       </AnimatePresence>
     </motion.div>

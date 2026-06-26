@@ -76,7 +76,7 @@ export function PublishForm({
       <div className="flex flex-col gap-1">
         {/* URL input row */}
         <div
-          className={`flex items-center gap-1.5 bg-surface rounded-[14px] px-3 py-2 ${borderClass}`}
+          className={`flex items-center gap-1.5 bg-surface rounded-[14px] px-3 py-2 text-[#CCCCCC] ${borderClass}`}
         >
           {isPublishing || slugStatus === 'checking' ? (
             <SpinnerIcon spin />

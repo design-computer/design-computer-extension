@@ -9,6 +9,9 @@ import {
   getAssets,
   uploadAsset,
   getTemplates,
+  createTemplate,
+  updateTemplate,
+  toggleBookmark,
   logout,
 } from '../lib/api'
 import { codeToHtml } from '../lib/code-to-html'
@@ -129,6 +132,9 @@ export default defineBackground(() => {
     uploadAsset(data.filename, data.mimeType, data.dataBase64),
   )
   onMessage('getTemplates', async () => getTemplates())
+  onMessage('createTemplate', async ({ data }) => createTemplate(data))
+  onMessage('updateTemplate', async ({ data }) => updateTemplate(data))
+  onMessage('toggleBookmark', async ({ data }) => toggleBookmark(data.slug, data.bookmark))
   onMessage('getSession', async () => getSession())
   onMessage('logout', async () => {
     await logout()

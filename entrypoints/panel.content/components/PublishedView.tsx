@@ -1,6 +1,15 @@
-import { CheckIcon, CopyIcon, GlobeIcon, QrIcon } from '@/entrypoints/panel.content/icons'
+import {
+  CheckIcon,
+  CodeXmlIcon,
+  CopyIcon,
+  GlobeIcon,
+  QrIcon,
+} from '@/entrypoints/panel.content/icons'
 import { usePanelStore } from '@/entrypoints/panel.content/store'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useState } from 'react'
+import { LibrarySection } from './LibrarySection'
+import { TemplatesSection } from './TemplatesSection'
 
 export function PublishedView() {
   const slug = usePanelStore((s) => s.slug)
@@ -11,111 +20,104 @@ export function PublishedView() {
   const copied = usePanelStore((s) => s.copied)
   const toggleQr = usePanelStore((s) => s.toggleQr)
   const copyUrl = usePanelStore((s) => s.copyUrl)
-  const onClose = usePanelStore((s) => s.onClose)
+
+  const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [libraryOpen, setLibraryOpen] = useState(false)
 
   return (
     <motion.div
-      key="congrats"
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="flex flex-col gap-1"
+      transition={{ duration: 0.25 }}
+      className="flex flex-col gap-1.5"
     >
-      {/* Congrats or QR — swap in place */}
-      <motion.div layout transition={{ layout: { duration: 0.25, ease: 'easeInOut' } }}>
-        <AnimatePresence mode="wait">
-          {showQr && qrDataUrl ? (
-            <motion.div
-              key="qr"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="flex justify-center bg-[#F6F6F6] rounded-[14px] py-[26px] px-16 mt-3"
+      {/* Black URL pill */}
+      <div className="flex items-center gap-1.5 bg-black rounded-[14px] px-3 py-2">
+        {publishedUrl ? (
+          <>
+            <span className="w-5 h-5 flex items-center justify-center text-[#6AC07A] shrink-0">
+              <GlobeIcon />
+            </span>
+            <p
+              className="flex-1 text-[14px] font-medium text-white leading-6 tracking-[-0.01em] truncate cursor-pointer"
+              style={{ fontFamily: "'Geist', sans-serif" }}
+              onClick={() => window.open(publishedUrl, '_blank')}
             >
-              <img src={qrDataUrl} alt="QR Code" className="w-[125px] h-[125px] rounded-lg" />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="text"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="text-center flex flex-col items-center py-3"
+              {slug}.{selectedDomain}
+            </p>
+            <div className="flex items-center gap-[10px] shrink-0 text-[#888888]">
+              <button
+                onClick={copyUrl}
+                className="bg-transparent border-none cursor-pointer p-0 flex relative w-5 h-5"
+                title={copied ? 'Copied!' : 'Copy URL'}
+              >
+                <AnimatePresence mode="wait">
+                  {copied ? (
+                    <motion.span
+                      key="check"
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute inset-0 flex text-white"
+                    >
+                      <CheckIcon />
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="copy"
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute inset-0 flex"
+                    >
+                      <CopyIcon />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </button>
+              <button
+                onClick={toggleQr}
+                className="bg-transparent border-none cursor-pointer p-0 flex w-5 h-5"
+                title="QR Code"
+              >
+                <QrIcon />
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <span className="w-5 h-5 flex items-center justify-center text-[#999999] shrink-0">
+              <CodeXmlIcon />
+            </span>
+            <p
+              className="flex-1 text-[14px] font-medium text-[#999999] leading-6 tracking-[-0.01em]"
+              style={{ fontFamily: "'Geist', sans-serif" }}
             >
-              <p className="text-[34px] leading-[48px]">🎉</p>
-              <p className="text-lg font-medium text-black tracking-[-0.01em] leading-6">
-                Congratulations!
-              </p>
-              <p className="text-lg font-medium text-muted tracking-[-0.01em] leading-6">
-                Your website is live
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      <div className="flex flex-col gap-1.5">
-        {/* URL row */}
-        <div className="flex items-center gap-1.5 bg-surface rounded-[14px] px-3 py-2">
-          <GlobeIcon />
-          <p
-            className="flex-1 text-sm font-medium text-[#459ef2] tracking-[-0.01em] leading-6 cursor-pointer truncate"
-            onClick={() => window.open(publishedUrl, '_blank')}
-          >
-            {slug}.{selectedDomain}
-          </p>
-          <div className="flex items-center gap-2.5 shrink-0">
-            <button
-              onClick={copyUrl}
-              className="bg-transparent border-none cursor-pointer p-0 flex relative w-5 h-5"
-              title={copied ? 'Copied!' : 'Copy URL'}
-            >
-              <AnimatePresence mode="wait">
-                {copied ? (
-                  <motion.span
-                    key="check"
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.5 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute inset-0 flex"
-                  >
-                    <CheckIcon />
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="copy"
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.5 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute inset-0 flex"
-                  >
-                    <CopyIcon />
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </button>
-            <button
-              onClick={toggleQr}
-              className="bg-transparent border-none cursor-pointer p-0 flex"
-              title="QR Code"
-            >
-              <QrIcon />
-            </button>
-          </div>
-        </div>
-
-        {/* Done button */}
-        <button
-          onClick={() => onClose?.()}
-          className="w-full bg-[#ccc] text-white border-none rounded-[14px] py-2 px-4 text-sm font-medium tracking-[-0.01em] leading-6 text-center cursor-pointer"
-        >
-          Done
-        </button>
+              No published page detected.
+            </p>
+          </>
+        )}
       </div>
+
+      {/* QR code panel */}
+      <AnimatePresence>
+        {showQr && qrDataUrl && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex justify-center bg-white rounded-[16px] py-6 overflow-hidden"
+          >
+            <img src={qrDataUrl} alt="QR Code" className="w-[125px] h-[125px] rounded-lg" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <TemplatesSection isOpen={templatesOpen} onToggle={() => setTemplatesOpen((v) => !v)} />
+      <LibrarySection isOpen={libraryOpen} onToggle={() => setLibraryOpen((v) => !v)} />
     </motion.div>
   )
 }

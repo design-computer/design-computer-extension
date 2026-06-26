@@ -1,8 +1,32 @@
+import { motion } from 'framer-motion'
+
+/**
+ * Accordion expand/collapse indicator that morphs between a plus (closed) and a
+ * minus (open): the whole glyph spins 180° while the vertical bar collapses to
+ * zero height, leaving a horizontal bar. (180° keeps the remaining bar
+ * horizontal — a 90° spin would leave it vertical.) Bars use `currentColor`, so
+ * the parent's text color drives the tint.
+ */
+export const ExpandToggleIcon = ({ isOpen }: { isOpen: boolean }) => (
+  <motion.span
+    className="w-5 h-5 flex items-center justify-center shrink-0 relative"
+    animate={{ rotate: isOpen ? 180 : 0 }}
+    transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+  >
+    <span className="absolute w-[14px] h-[2px] rounded-full bg-current" />
+    <motion.span
+      className="absolute w-[2px] h-[14px] rounded-full bg-current origin-center"
+      animate={{ scaleY: isOpen ? 0 : 1 }}
+      transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+    />
+  </motion.span>
+)
+
 export const GlobeIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="shrink-0">
-    <circle cx="10" cy="10" r="7.5" stroke="#999" strokeWidth="1.2" />
-    <ellipse cx="10" cy="10" rx="3.5" ry="7.5" stroke="#999" strokeWidth="1.2" />
-    <path d="M3 7.5h14M3 12.5h14" stroke="#999" strokeWidth="1.2" />
+  <svg width="16.67" height="16.67" viewBox="0 0 20 20" fill="none" className="shrink-0">
+    <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.2" />
+    <ellipse cx="10" cy="10" rx="3.5" ry="7.5" stroke="currentColor" strokeWidth="1.2" />
+    <path d="M3 7.5h14M3 12.5h14" stroke="currentColor" strokeWidth="1.2" />
   </svg>
 )
 
@@ -31,6 +55,68 @@ export const LogoutIcon = () => (
       d="M14.1668 5.83337V14.1667H5.8335"
       stroke="#999999"
       strokeWidth="1.66667"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+export const CodeXmlIcon = () => (
+  <svg
+    width="16.67"
+    height="13.33"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="shrink-0"
+  >
+    <path d="m18 16 4-4-4-4" />
+    <path d="m6 8-4 4 4 4" />
+    <path d="m14.5 4-5 16" />
+  </svg>
+)
+
+export const MinusIcon = () => (
+  <svg
+    width="12"
+    height="2"
+    viewBox="0 0 12 2"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    className="shrink-0"
+  >
+    <path d="M1 1h10" />
+  </svg>
+)
+
+export const PlusIcon = () => (
+  <svg
+    width="11.67"
+    height="11.67"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="#999999"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className="shrink-0"
+  >
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+)
+
+export const SettingsIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0">
+    <circle cx="12" cy="12" r="3" stroke="#8f8f8f" strokeWidth="2" />
+    <path
+      d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+      stroke="#999999"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
@@ -196,14 +282,14 @@ export const CopyIcon = () => (
     <g clipPath="url(#clip0_copy)">
       <path
         d="M16.6665 6.66663H8.33317C7.4127 6.66663 6.6665 7.41282 6.6665 8.33329V16.6666C6.6665 17.5871 7.4127 18.3333 8.33317 18.3333H16.6665C17.587 18.3333 18.3332 17.5871 18.3332 16.6666V8.33329C18.3332 7.41282 17.587 6.66663 16.6665 6.66663Z"
-        stroke="#999"
+        stroke="currentColor"
         strokeWidth="1.66667"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       <path
         d="M3.33317 13.3333C2.4165 13.3333 1.6665 12.5833 1.6665 11.6666V3.33329C1.6665 2.41663 2.4165 1.66663 3.33317 1.66663H11.6665C12.5832 1.66663 13.3332 2.41663 13.3332 3.33329"
-        stroke="#999"
+        stroke="currentColor"
         strokeWidth="1.66667"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -221,7 +307,7 @@ export const CheckIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="shrink-0">
     <path
       d="M4.5 10.5L8 14L15.5 6.5"
-      stroke="black"
+      stroke="currentColor"
       strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -233,84 +319,84 @@ export const QrIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="shrink-0">
     <path
       d="M5.83333 2.5H3.33333C2.8731 2.5 2.5 2.8731 2.5 3.33333V5.83333C2.5 6.29357 2.8731 6.66667 3.33333 6.66667H5.83333C6.29357 6.66667 6.66667 6.29357 6.66667 5.83333V3.33333C6.66667 2.8731 6.29357 2.5 5.83333 2.5Z"
-      stroke="#999"
+      stroke="currentColor"
       strokeWidth="1.66667"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M16.6668 2.5H14.1668C13.7066 2.5 13.3335 2.8731 13.3335 3.33333V5.83333C13.3335 6.29357 13.7066 6.66667 14.1668 6.66667H16.6668C17.1271 6.66667 17.5002 6.29357 17.5002 5.83333V3.33333C17.5002 2.8731 17.1271 2.5 16.6668 2.5Z"
-      stroke="#999"
+      stroke="currentColor"
       strokeWidth="1.66667"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M5.83333 13.3334H3.33333C2.8731 13.3334 2.5 13.7065 2.5 14.1667V16.6667C2.5 17.1269 2.8731 17.5 3.33333 17.5H5.83333C6.29357 17.5 6.66667 17.1269 6.66667 16.6667V14.1667C6.66667 13.7065 6.29357 13.3334 5.83333 13.3334Z"
-      stroke="#999"
+      stroke="currentColor"
       strokeWidth="1.66667"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M17.5002 13.3334H15.0002C14.5581 13.3334 14.1342 13.509 13.8217 13.8215C13.5091 14.1341 13.3335 14.558 13.3335 15V17.5"
-      stroke="#999"
+      stroke="currentColor"
       strokeWidth="1.66667"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M17.5 17.5V17.5083"
-      stroke="#999"
+      stroke="currentColor"
       strokeWidth="1.66667"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M10.0002 5.83337V8.33337C10.0002 8.7754 9.82457 9.19932 9.51201 9.51188C9.19945 9.82445 8.77552 10 8.3335 10H5.8335"
-      stroke="#999"
+      stroke="currentColor"
       strokeWidth="1.66667"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M2.5 10H2.50833"
-      stroke="#999"
+      stroke="currentColor"
       strokeWidth="1.66667"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M10 2.5H10.0083"
-      stroke="#999"
+      stroke="currentColor"
       strokeWidth="1.66667"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M10 13.3334V13.3417"
-      stroke="#999"
+      stroke="currentColor"
       strokeWidth="1.66667"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M13.3335 10H14.1668"
-      stroke="#999"
+      stroke="currentColor"
       strokeWidth="1.66667"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M17.5 10V10.0083"
-      stroke="#999"
+      stroke="currentColor"
       strokeWidth="1.66667"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M10 17.5V16.6666"
-      stroke="#999"
+      stroke="currentColor"
       strokeWidth="1.66667"
       strokeLinecap="round"
       strokeLinejoin="round"

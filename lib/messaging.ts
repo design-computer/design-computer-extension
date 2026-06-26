@@ -90,8 +90,40 @@ export interface TemplateItem {
   description: string
   content: string
   coverUrl: string | null
+  category: string | null
+  creatorName: string | null
+  creatorAvatar: string | null
   isPublic: boolean
   isOwner: boolean
+  bookmarkCount: number
+  isBookmarked: boolean
+}
+
+export interface ToggleBookmarkData {
+  slug: string
+  bookmark: boolean
+}
+
+export interface CreateTemplateData {
+  name: string
+  description: string
+  content: string
+  category: string | null
+  isPublic: boolean
+  // Optional cover image, base64-encoded like uploadAsset (messaging is JSON,
+  // so File/Blob can't cross the boundary directly).
+  cover?: { filename: string; mimeType: string; dataBase64: string } | null
+}
+
+export interface UpdateTemplateData extends CreateTemplateData {
+  slug: string
+  // True = drop the existing cover. Ignored when a new `cover` is provided.
+  removeCover?: boolean
+}
+
+export interface ToggleBookmarkResult {
+  bookmarked: boolean
+  bookmarkCount: number
 }
 
 export const { sendMessage, onMessage } = defineExtensionMessaging<{
@@ -104,6 +136,9 @@ export const { sendMessage, onMessage } = defineExtensionMessaging<{
   getAssets(data: void): AssetItem[]
   uploadAsset(data: UploadAssetData): UploadAssetResult
   getTemplates(data: void): TemplateItem[]
+  createTemplate(data: CreateTemplateData): TemplateItem
+  updateTemplate(data: UpdateTemplateData): TemplateItem
+  toggleBookmark(data: ToggleBookmarkData): ToggleBookmarkResult
   grantPermissions(data: { origins: string[] }): boolean
   logout(data: void): void
   openPanelWithCode(data: CodeData): void

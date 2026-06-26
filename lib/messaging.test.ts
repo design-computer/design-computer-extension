@@ -12,13 +12,13 @@ describe('publish message', () => {
     const { sendMessage, onMessage } = await import('./messaging')
 
     onMessage('publish', async ({ data }) => {
-      return { url: `http://test.curiosive.com/${data.code.length}` }
+      return { url: `http://test.wip.page/${data.code.length}` }
     })
 
     const result = await sendMessage('publish', { code: 'console.log("hi")' })
 
     // 'console.log("hi")' = 17 chars
-    expect(result.url).toBe('http://test.curiosive.com/17')
+    expect(result.url).toBe('http://test.wip.page/17')
   })
 
   test('forwards code and language correctly', async () => {
@@ -27,7 +27,7 @@ describe('publish message', () => {
 
     onMessage('publish', async ({ data }) => {
       received = data
-      return { url: 'http://x.curiosive.com' }
+      return { url: 'http://x.wip.page' }
     })
 
     await sendMessage('publish', { code: 'const x = 1', language: 'typescript' })
@@ -39,11 +39,11 @@ describe('publish message', () => {
     const { sendMessage, onMessage } = await import('./messaging')
 
     onMessage('publish', async ({ data }) => {
-      return { url: `http://${data.language ?? 'no-lang'}.curiosive.com` }
+      return { url: `http://${data.language ?? 'no-lang'}.wip.page` }
     })
 
     const result = await sendMessage('publish', { code: 'hello' })
 
-    expect(result.url).toBe('http://no-lang.curiosive.com')
+    expect(result.url).toBe('http://no-lang.wip.page')
   })
 })

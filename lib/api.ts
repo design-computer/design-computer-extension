@@ -1,7 +1,6 @@
 import { localExtStorage } from '@webext-core/storage'
-import type { SessionData } from './messaging'
-
-const WEB_URL = import.meta.env.VITE_WEB_URL ?? 'https://my.design.computer'
+import type { CreateTemplateData, SessionData, UpdateTemplateData } from './messaging'
+import { WEB_URL } from './config'
 
 export interface PublishResponse {
   slug: string
@@ -137,8 +136,13 @@ export interface TemplateItem {
   description: string
   content: string
   coverUrl: string | null
+  category: string | null
+  creatorName: string | null
+  creatorAvatar: string | null
   isPublic: boolean
   isOwner: boolean
+  bookmarkCount: number
+  isBookmarked: boolean
 }
 
 export async function getTemplates(): Promise<TemplateItem[]> {
@@ -165,6 +169,86 @@ export async function getTemplates(): Promise<TemplateItem[]> {
     })
   }
   return merged
+}
+
+// Create a template. POSTs multipart/form-data to match the web API, which
+// runs the cover image through Cloudflare Images → WebP into R2.
+export async function createTemplate(data: CreateTemplateData): Promise<TemplateItem> {
+  const fd = new FormData()
+  fd.append('name', data.name)
+  fd.append('description', data.description)
+  fd.append('content', data.content)
+  fd.append('isPublic', String(data.isPublic))
+  if (data.category) fd.append('category', data.category)
+
+  if (data.cover) {
+    // Reconstruct the file from base64 (messaging is JSON-serialized).
+    const binary = atob(data.cover.dataBase64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    fd.append('cover', new Blob([bytes], { type: data.cover.mimeType }), data.cover.filename)
+  }
+
+  const res = await fetch(`${WEB_URL}/api/templates`, {
+    method: 'POST',
+    credentials: 'include',
+    body: fd,
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }))
+    throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`)
+  }
+
+  const { template } = (await res.json()) as { template: TemplateItem }
+  // Cover URL is app-relative; make it absolute for the content-script context.
+  return { ...template, coverUrl: template.coverUrl ? `${WEB_URL}${template.coverUrl}` : null }
+}
+
+// Update an existing template (owner only). Same multipart shape as create,
+// plus `removeCover` to drop the cover when no new one is supplied.
+export async function updateTemplate(data: UpdateTemplateData): Promise<TemplateItem> {
+  const fd = new FormData()
+  fd.append('name', data.name)
+  fd.append('description', data.description)
+  fd.append('content', data.content)
+  fd.append('isPublic', String(data.isPublic))
+  if (data.category) fd.append('category', data.category)
+  if (data.removeCover) fd.append('removeCover', 'true')
+
+  if (data.cover) {
+    const binary = atob(data.cover.dataBase64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    fd.append('cover', new Blob([bytes], { type: data.cover.mimeType }), data.cover.filename)
+  }
+
+  const res = await fetch(`${WEB_URL}/api/templates/${data.slug}`, {
+    method: 'PUT',
+    credentials: 'include',
+    body: fd,
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }))
+    throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`)
+  }
+
+  const { template } = (await res.json()) as { template: TemplateItem }
+  return { ...template, coverUrl: template.coverUrl ? `${WEB_URL}${template.coverUrl}` : null }
+}
+
+// Bookmark / unbookmark a template. Returns the server's canonical bookmark count.
+export async function toggleBookmark(
+  slug: string,
+  bookmark: boolean,
+): Promise<{ bookmarked: boolean; bookmarkCount: number }> {
+  const res = await fetch(`${WEB_URL}/api/templates/${slug}/bookmark`, {
+    method: bookmark ? 'POST' : 'DELETE',
+    credentials: 'include',
+  })
+  if (!res.ok) throw new Error(`toggleBookmark failed: ${res.status}`)
+  return (await res.json()) as { bookmarked: boolean; bookmarkCount: number }
 }
 
 export async function logout(): Promise<void> {
