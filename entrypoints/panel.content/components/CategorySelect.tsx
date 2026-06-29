@@ -5,10 +5,13 @@ import {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ComponentPropsWithoutRef,
+  type RefObject,
 } from 'react'
+import { createPortal } from 'react-dom'
 
 /**
  * CategorySelect — a small, dependency-free dropdown built with a composition
@@ -32,6 +35,11 @@ interface CategorySelectContextValue {
   open: boolean
   toggle: () => void
   close: () => void
+  triggerRef: RefObject<HTMLButtonElement | null>
+  contentRef: RefObject<HTMLDivElement | null>
+  // The node to portal the dropdown into — the ShadowRoot the panel lives in
+  // (so Tailwind styles apply), or document.body when not inside a shadow root.
+  portalTarget: ShadowRoot | HTMLElement | null
 }
 
 const CategorySelectContext = createContext<CategorySelectContextValue | null>(null)
@@ -45,17 +53,31 @@ function useCategorySelect() {
 function CategorySelectRoot({ children, className, ...rest }: ComponentPropsWithoutRef<'div'>) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  // Resolved after mount: the ShadowRoot the panel lives in (preferred so the
+  // portaled dropdown inherits the same Tailwind styles), else document.body.
+  const [portalTarget, setPortalTarget] = useState<ShadowRoot | HTMLElement | null>(null)
+
+  useEffect(() => {
+    const root = rootRef.current?.getRootNode()
+    setPortalTarget(root instanceof ShadowRoot ? root : document.body)
+  }, [])
 
   // Close on outside click / Escape. The panel lives inside a shadow root, so
   // we bind to getRootNode() (the ShadowRoot) rather than document — that keeps
-  // event.target un-retargeted so `contains()` resolves correctly.
+  // event.target un-retargeted so `contains()` resolves correctly. The dropdown
+  // is portaled out of rootRef, so a click counts as "inside" if it lands in
+  // either the root (trigger) or the portaled content.
   useEffect(() => {
     if (!open) return
     const root = rootRef.current?.getRootNode() as ShadowRoot | Document | undefined
     if (!root) return
 
     const onPointerDown = (e: Event) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      const inside = rootRef.current?.contains(target) || contentRef.current?.contains(target)
+      if (!inside) setOpen(false)
     }
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setOpen(false)
@@ -71,7 +93,14 @@ function CategorySelectRoot({ children, className, ...rest }: ComponentPropsWith
 
   return (
     <CategorySelectContext.Provider
-      value={{ open, toggle: () => setOpen((v) => !v), close: () => setOpen(false) }}
+      value={{
+        open,
+        toggle: () => setOpen((v) => !v),
+        close: () => setOpen(false),
+        triggerRef,
+        contentRef,
+        portalTarget,
+      }}
     >
       <div ref={rootRef} className={cn('relative ml-auto shrink-0', className)} {...rest}>
         {children}
@@ -81,9 +110,10 @@ function CategorySelectRoot({ children, className, ...rest }: ComponentPropsWith
 }
 
 function Trigger({ children, className, onClick, ...rest }: ComponentPropsWithoutRef<'button'>) {
-  const { open, toggle } = useCategorySelect()
+  const { open, toggle, triggerRef } = useCategorySelect()
   return (
     <button
+      ref={triggerRef}
       type="button"
       aria-haspopup="listbox"
       aria-expanded={open}
@@ -107,20 +137,54 @@ function Trigger({ children, className, onClick, ...rest }: ComponentPropsWithou
   )
 }
 
-function Content({ children, className, ...rest }: HTMLMotionProps<'div'>) {
-  const { open } = useCategorySelect()
-  return (
+// Gap between the trigger and the dropdown, in px (matches the old `mt-2`).
+const CONTENT_GAP = 8
+
+function Content({ children, className, style, ...rest }: HTMLMotionProps<'div'>) {
+  const { open, triggerRef, contentRef, portalTarget } = useCategorySelect()
+  // Fixed-position coords derived from the trigger's viewport rect. Right-anchored
+  // (like the old `right-0`) so the dropdown's right edge tracks the trigger's.
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
+
+  useLayoutEffect(() => {
+    if (!open) return
+    const update = () => {
+      const el = triggerRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      setPos({ top: r.bottom + CONTENT_GAP, right: window.innerWidth - r.right })
+    }
+    update()
+    window.addEventListener('resize', update)
+    // Capture phase so we also react to scrolls in inner containers (the panel).
+    window.addEventListener('scroll', update, true)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('scroll', update, true)
+    }
+  }, [open, triggerRef])
+
+  if (!portalTarget) return null
+
+  return createPortal(
     <AnimatePresence>
-      {open && (
+      {open && pos && (
         <motion.div
+          ref={contentRef}
           role="listbox"
           initial={{ opacity: 0, y: -6, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -6, scale: 0.98 }}
           transition={{ duration: 0.16, ease: 'easeOut' }}
-          style={{ transformOrigin: 'top right' }}
+          style={{
+            position: 'fixed',
+            top: pos.top,
+            right: pos.right,
+            transformOrigin: 'top right',
+            ...style,
+          }}
           className={cn(
-            'absolute top-full right-0 mt-2 z-50 min-w-[200px] p-1 bg-white rounded-[14px] border border-[#eee] shadow-[0_8px_24px_rgba(0,0,0,0.12)] max-h-[280px] overflow-y-auto',
+            'z-[2147483647] min-w-[200px] p-1 bg-white rounded-[14px] border border-[#eee] shadow-[0_8px_24px_rgba(0,0,0,0.12)] max-h-[280px] overflow-y-auto',
             className,
           )}
           {...rest}
@@ -128,7 +192,8 @@ function Content({ children, className, ...rest }: HTMLMotionProps<'div'>) {
           {children}
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    portalTarget,
   )
 }
 
