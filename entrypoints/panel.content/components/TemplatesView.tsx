@@ -12,14 +12,29 @@ function TemplateCard({
   template: TemplateItem
   onPick: (t: TemplateItem) => void
 }) {
+  const [loaded, setLoaded] = useState(false)
+  const cover = template.coverThumbnailUrl ?? template.coverUrl
   return (
     <button
       onClick={() => onPick(template)}
       className="flex flex-col rounded-[14px] overflow-hidden border border-[#eee] bg-white text-left cursor-pointer hover:border-[#ccc] transition-colors"
     >
-      <div className="aspect-[16/9] bg-[#efefef] w-full">
-        {template.coverUrl ? (
-          <img src={template.coverUrl} alt={template.name} className="w-full h-full object-cover" />
+      <div className="relative aspect-[16/9] bg-[#efefef] w-full">
+        {cover ? (
+          <>
+            {!loaded && <div className="absolute inset-0 animate-pulse bg-[#ececec]" />}
+            <img
+              src={cover}
+              alt={template.name}
+              loading="lazy"
+              decoding="async"
+              onLoad={() => setLoaded(true)}
+              onError={() => setLoaded(true)}
+              className={`w-full h-full object-cover transition-opacity duration-200 ${
+                loaded ? 'opacity-100' : 'opacity-0'
+              }`}
+            />
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-[#ccc] text-[12px]">
             design.md

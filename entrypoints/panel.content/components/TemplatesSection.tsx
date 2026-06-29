@@ -135,10 +135,31 @@ function CoverImage({
   name: string
   className?: string
 }) {
-  if (url) return <img src={url} alt={name} className={`object-cover ${className}`} />
+  const [loaded, setLoaded] = useState(false)
+
+  if (!url) {
+    return (
+      <div className={`flex items-center justify-center bg-[#f4f4f4] ${className}`}>
+        <ImageIcon width={20} height={20} strokeWidth={1.5} color="#ccc" />
+      </div>
+    )
+  }
+
+  // Show a pulsing skeleton until the image decodes, then cross-fade it in.
   return (
-    <div className={`flex items-center justify-center bg-[#f4f4f4] ${className}`}>
-      <ImageIcon width={20} height={20} strokeWidth={1.5} color="#ccc" />
+    <div className={`relative overflow-hidden bg-[#f4f4f4] ${className}`}>
+      {!loaded && <div className="absolute inset-0 animate-pulse bg-[#ececec]" />}
+      <img
+        src={url}
+        alt={name}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
+        className={`h-full w-full object-cover transition-opacity duration-200 ${
+          loaded ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
     </div>
   )
 }
@@ -146,15 +167,57 @@ function CoverImage({
 function CardBookmark({ filled = false }: { filled?: boolean }) {
   return (
     <span className=" flex items-center justify-center shrink-0">
-      <Bookmark width={15} height={15} strokeWidth={2} color={filled ? '#fff' : '#999999'} />
+      <Bookmark
+        width={15}
+        height={15}
+        strokeWidth={2}
+        color="#999999"
+        fill={filled ? '#999999' : 'none'}
+      />
     </span>
   )
 }
 
 // Bookmark icon + count, styled per spec: 2px gap, 12px / 16px, -1% tracking.
-function BookmarkCount({ count, filled }: { count: number; filled: boolean }) {
+// When `onToggle` is provided the icon+count becomes a clickable control that
+// toggles the bookmark. It lives inside the card's <button>, so we render it as
+// a role="button" span (not a nested <button>, which is invalid HTML) and stop
+// click propagation so toggling never opens the template detail.
+function BookmarkCount({
+  count,
+  filled,
+  onToggle,
+}: {
+  count: number
+  filled: boolean
+  onToggle?: () => void
+}) {
+  if (!onToggle) {
+    return (
+      <span className="flex items-center gap-[2px] text-[12px] leading-[16px] tracking-[-0.01em] text-[#999] shrink-0">
+        <CardBookmark filled={filled} /> {count}
+      </span>
+    )
+  }
   return (
-    <span className="flex items-center gap-[2px] text-[12px] leading-[16px] tracking-[-0.01em] text-[#999] shrink-0">
+    <span
+      role="button"
+      tabIndex={0}
+      aria-pressed={filled}
+      aria-label={filled ? 'Remove bookmark' : 'Bookmark template'}
+      onClick={(e) => {
+        e.stopPropagation()
+        onToggle()
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          e.stopPropagation()
+          onToggle()
+        }
+      }}
+      className="flex items-center gap-[2px] text-[12px] leading-[16px] tracking-[-0.01em] text-[#999] shrink-0 cursor-pointer"
+    >
       <CardBookmark filled={filled} /> {count}
     </span>
   )
@@ -163,9 +226,11 @@ function BookmarkCount({ count, filled }: { count: number; filled: boolean }) {
 function TemplateGridCard({
   template,
   onSelect,
+  onToggleBookmark,
 }: {
   template: TemplateItem
   onSelect: () => void
+  onToggleBookmark: (t: TemplateItem) => void
 }) {
   return (
     <button
@@ -173,7 +238,7 @@ function TemplateGridCard({
       className="flex flex-col gap-[6px] text-left bg-transparent border-none cursor-pointer p-0"
     >
       <CoverImage
-        url={template.coverUrl}
+        url={template.coverThumbnailUrl ?? template.coverUrl}
         name={template.name}
         className="h-[91.5px] w-full rounded-[8px]"
       />
@@ -181,7 +246,11 @@ function TemplateGridCard({
         <span className="flex-1 text-[12px] font-medium text-black tracking-[-0.01em] leading-[18px] truncate">
           {template.name}
         </span>
-        <BookmarkCount count={template.bookmarkCount} filled={template.isBookmarked} />
+        <BookmarkCount
+          count={template.bookmarkCount}
+          filled={template.isBookmarked}
+          onToggle={() => onToggleBookmark(template)}
+        />
       </div>
     </button>
   )
@@ -190,9 +259,11 @@ function TemplateGridCard({
 function TemplateSavedCard({
   template,
   onSelect,
+  onToggleBookmark,
 }: {
   template: TemplateItem
   onSelect: () => void
+  onToggleBookmark: (t: TemplateItem) => void
 }) {
   return (
     <button
@@ -200,7 +271,7 @@ function TemplateSavedCard({
       className="flex flex-col gap-[6px] text-left bg-transparent border-none cursor-pointer p-0 w-full"
     >
       <CoverImage
-        url={template.coverUrl}
+        url={template.coverThumbnailUrl ?? template.coverUrl}
         name={template.name}
         className="w-full aspect-[4/3] rounded-[8px]"
       />
@@ -208,7 +279,11 @@ function TemplateSavedCard({
         <span className="flex-1 text-[12px] font-medium text-black tracking-[-0.01em] leading-[18px] truncate">
           {template.name}
         </span>
-        <BookmarkCount count={template.bookmarkCount} filled={template.isBookmarked} />
+        <BookmarkCount
+          count={template.bookmarkCount}
+          filled={template.isBookmarked}
+          onToggle={() => onToggleBookmark(template)}
+        />
       </div>
     </button>
   )
@@ -387,6 +462,48 @@ function fileToBase64(file: File): Promise<string> {
   })
 }
 
+// Covers over the size limit are downscaled in the browser before upload rather
+// than rejected: cap the longest side, then re-encode to WebP, dropping quality
+// (and finally dimensions) until it fits under `maxBytes`. The API still resizes
+// and generates its own variants — this just keeps the upload itself small.
+async function downscaleImageToLimit(file: File, maxBytes: number): Promise<File> {
+  const MAX_SIDE = 2048
+  const bitmap = await createImageBitmap(file)
+  try {
+    const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height))
+    let width = Math.max(1, Math.round(bitmap.width * scale))
+    let height = Math.max(1, Math.round(bitmap.height * scale))
+    let quality = 0.9
+
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('no-2d-context')
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      canvas.width = width
+      canvas.height = height
+      ctx.clearRect(0, 0, width, height)
+      ctx.drawImage(bitmap, 0, 0, width, height)
+      const blob = await new Promise<Blob | null>((res) =>
+        canvas.toBlob(res, 'image/webp', quality),
+      )
+      if (blob && blob.size <= maxBytes) {
+        const base = file.name.replace(/\.[^./\\]+$/, '')
+        return new File([blob], `${base}.webp`, { type: 'image/webp' })
+      }
+      // Squeeze quality first; once that bottoms out, shrink dimensions.
+      if (quality > 0.5) quality -= 0.15
+      else {
+        width = Math.max(1, Math.round(width * 0.8))
+        height = Math.max(1, Math.round(height * 0.8))
+      }
+    }
+    throw new Error('could-not-shrink')
+  } finally {
+    bitmap.close()
+  }
+}
+
 // Shared form for both creating a new template and editing an existing one
 // (pass `template` to edit). Submits via the create/update message accordingly.
 function CreateForm({
@@ -430,20 +547,28 @@ function CreateForm({
       setError('Cover must be an image')
       return
     }
-    if (file.size > MAX_COVER_SIZE) {
-      setError('Cover too large — max 5MB')
-      return
-    }
     setError(null)
-    const dataBase64 = await fileToBase64(file)
+
+    // Keep files under the limit as-is; downscale anything larger in the browser.
+    let upload = file
+    if (file.size > MAX_COVER_SIZE) {
+      try {
+        upload = await downscaleImageToLimit(file, MAX_COVER_SIZE)
+      } catch {
+        setError('Cover too large — max 5MB')
+        return
+      }
+    }
+
+    const dataBase64 = await fileToBase64(upload)
     setCover((prev) => {
       if (prev.kind === 'new') URL.revokeObjectURL(prev.previewUrl)
       return {
         kind: 'new',
-        filename: file.name,
-        mimeType: file.type,
+        filename: upload.name,
+        mimeType: upload.type,
         dataBase64,
-        previewUrl: URL.createObjectURL(file),
+        previewUrl: URL.createObjectURL(upload),
       }
     })
   }
@@ -737,7 +862,7 @@ export function TemplatesSection({ isOpen, onToggle }: { isOpen: boolean; onTogg
     <div className="bg-white rounded-[16px] overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center px-1.5 py-[10px] bg-transparent border-none cursor-pointer"
+        className="w-full flex items-center px-2.5 py-[10px] bg-transparent border-none cursor-pointer"
       >
         <span className="flex-1 text-[16px] font-medium text-black leading-6 tracking-[-0.01em] text-left">
           Templates
@@ -756,7 +881,7 @@ export function TemplatesSection({ isOpen, onToggle }: { isOpen: boolean; onTogg
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <div className="px-1.5 pb-2.5 overflow-hidden">
+            <div className="px-2.5 pb-2.5 overflow-hidden">
               <AnimatePresence mode="wait" initial={false} custom={screenDir}>
                 <motion.div
                   key={screen}
@@ -812,6 +937,7 @@ export function TemplatesSection({ isOpen, onToggle }: { isOpen: boolean; onTogg
                                   key={t.id}
                                   template={t}
                                   onSelect={() => openDetail(t)}
+                                  onToggleBookmark={handleToggleBookmark}
                                 />
                               ))}
                             </div>
@@ -835,6 +961,7 @@ export function TemplatesSection({ isOpen, onToggle }: { isOpen: boolean; onTogg
                                   key={t.id}
                                   template={t}
                                   onSelect={() => openDetail(t)}
+                                  onToggleBookmark={handleToggleBookmark}
                                 />
                               ))}
                             </div>

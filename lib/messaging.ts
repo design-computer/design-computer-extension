@@ -90,6 +90,9 @@ export interface TemplateItem {
   description: string
   content: string
   coverUrl: string | null
+  // Small variant for card/grid rendering; falls back to coverUrl when the
+  // backend hasn't generated a thumbnail (e.g. covers from before thumbnails).
+  coverThumbnailUrl: string | null
   category: string | null
   creatorName: string | null
   creatorAvatar: string | null

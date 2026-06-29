@@ -136,6 +136,9 @@ export interface TemplateItem {
   description: string
   content: string
   coverUrl: string | null
+  // Small variant for card/grid rendering; falls back to coverUrl when the
+  // backend hasn't generated a thumbnail (e.g. covers from before thumbnails).
+  coverThumbnailUrl: string | null
   category: string | null
   creatorName: string | null
   creatorAvatar: string | null
@@ -143,6 +146,21 @@ export interface TemplateItem {
   isOwner: boolean
   bookmarkCount: number
   isBookmarked: boolean
+}
+
+// Cover URLs from the API are app-relative; make them absolute for the
+// content-script context. The thumbnail falls back to the full cover so older
+// covers (no thumbnail generated) still render.
+function absolutizeCover(t: TemplateItem): TemplateItem {
+  return {
+    ...t,
+    coverUrl: t.coverUrl ? `${WEB_URL}${t.coverUrl}` : null,
+    coverThumbnailUrl: t.coverThumbnailUrl
+      ? `${WEB_URL}${t.coverThumbnailUrl}`
+      : t.coverUrl
+        ? `${WEB_URL}${t.coverUrl}`
+        : null,
+  }
 }
 
 export async function getTemplates(): Promise<TemplateItem[]> {
@@ -162,11 +180,7 @@ export async function getTemplates(): Promise<TemplateItem[]> {
   for (const t of [...mine, ...community]) {
     if (seen.has(t.id)) continue
     seen.add(t.id)
-    // Cover URLs are app-relative; make them absolute for the content-script context.
-    merged.push({
-      ...t,
-      coverUrl: t.coverUrl ? `${WEB_URL}${t.coverUrl}` : null,
-    })
+    merged.push(absolutizeCover(t))
   }
   return merged
 }
@@ -201,8 +215,7 @@ export async function createTemplate(data: CreateTemplateData): Promise<Template
   }
 
   const { template } = (await res.json()) as { template: TemplateItem }
-  // Cover URL is app-relative; make it absolute for the content-script context.
-  return { ...template, coverUrl: template.coverUrl ? `${WEB_URL}${template.coverUrl}` : null }
+  return absolutizeCover(template)
 }
 
 // Update an existing template (owner only). Same multipart shape as create,
@@ -235,7 +248,7 @@ export async function updateTemplate(data: UpdateTemplateData): Promise<Template
   }
 
   const { template } = (await res.json()) as { template: TemplateItem }
-  return { ...template, coverUrl: template.coverUrl ? `${WEB_URL}${template.coverUrl}` : null }
+  return absolutizeCover(template)
 }
 
 // Bookmark / unbookmark a template. Returns the server's canonical bookmark count.
