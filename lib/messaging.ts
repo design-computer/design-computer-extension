@@ -69,12 +69,34 @@ export interface AssetItem {
   url: string
 }
 
+export interface GetAssetsParams {
+  // Opaque keyset cursor from a previous page; omit/undefined for the first page.
+  cursor?: string | null
+  limit?: number
+}
+
+export interface AssetsPage {
+  assets: AssetItem[]
+  nextCursor: string | null
+}
+
 export interface UploadAssetData {
   filename: string
   mimeType: string
   // base64-encoded file bytes (chrome.runtime messaging is JSON-serialized,
   // so File/Blob/ArrayBuffer cannot be passed directly)
   dataBase64: string
+  // Correlates background→panel `uploadProgress` events back to a specific
+  // picked file. Optional so non-progress callers stay source-compatible.
+  uploadId?: string
+}
+
+// Background→panel upload progress tick (see uploadAsset). Sent to the
+// originating tab as bytes stream out; loaded/total are body bytes.
+export interface UploadProgressData {
+  uploadId: string
+  loaded: number
+  total: number
 }
 
 export interface UploadAssetResult {
@@ -136,8 +158,10 @@ export const { sendMessage, onMessage } = defineExtensionMessaging<{
   getSession(data: void): SessionData
   getProjects(data: void): ProjectItem[]
   getDomains(data: void): { domains: { domain: string; type: 'burner' | 'vanity' }[]; tier: string }
-  getAssets(data: void): AssetItem[]
+  getAssets(data: GetAssetsParams): AssetsPage
   uploadAsset(data: UploadAssetData): UploadAssetResult
+  // Background → panel: emitted repeatedly during an uploadAsset request.
+  uploadProgress(data: UploadProgressData): void
   getTemplates(data: void): TemplateItem[]
   createTemplate(data: CreateTemplateData): TemplateItem
   updateTemplate(data: UpdateTemplateData): TemplateItem

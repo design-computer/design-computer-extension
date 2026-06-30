@@ -39,7 +39,7 @@ export function PublishedView() {
               <GlobeIcon />
             </span>
             <p
-              className="flex-1 text-[14px] font-medium text-white leading-6 tracking-[-0.01em] truncate cursor-pointer"
+              className="flex-1 min-w-0 text-[14px] font-medium text-white leading-6 tracking-[-0.01em] truncate cursor-pointer"
               style={{ fontFamily: "'Geist', sans-serif" }}
               onClick={() => window.open(publishedUrl, '_blank')}
             >

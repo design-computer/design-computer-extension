@@ -78,7 +78,11 @@ export default defineConfig({
     web_accessible_resources: [
       {
         resources: [
-          'fonts/Switzer-Variable.woff2',
+          'fonts/Geist-Light.ttf',
+          'fonts/Geist-Regular.ttf',
+          'fonts/Geist-Medium.ttf',
+          'fonts/Geist-SemiBold.ttf',
+          'fonts/Geist-Bold.ttf',
           'content-scripts/panel.css',
           'button.png',
           'button-logo-gradient.png',

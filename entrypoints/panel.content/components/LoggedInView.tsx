@@ -4,6 +4,7 @@ import type { SessionData } from '@/lib/messaging'
 import { sendMessage } from '@/lib/messaging'
 import { AnimatePresence } from 'framer-motion'
 import { useEffect } from 'react'
+import { PanelBodySkeleton } from './PanelLayout'
 import { PublishForm } from './PublishForm'
 import { PublishedView } from './PublishedView'
 
@@ -43,7 +44,9 @@ export function LoggedInView({
     onLogout()
   }
 
-  if (!statusChecked) return null
+  // Keep the loading skeleton up while the publish-status check runs, instead
+  // of an empty body, so the content area doesn't flash blank then reflow.
+  if (!statusChecked) return <PanelBodySkeleton tone="light" />
 
   return (
     <>

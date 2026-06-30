@@ -133,7 +133,12 @@ export function Panel({
     viewKey = 'logged-out'
     viewContent = <LoggedOutView onClose={onClose} />
   } else if (loading) {
-    return null
+    // Show the panel chrome (container + header shell) immediately rather than
+    // blocking the whole panel on the session fetch. Content stays empty until
+    // the session resolves, then the real view fades in — so the panel appears
+    // the instant it's opened instead of after the round-trip.
+    viewKey = 'loading'
+    viewContent = null
   } else {
     viewKey = 'logged-in'
     viewContent = (
@@ -156,7 +161,7 @@ export function Panel({
       onAnimationComplete={() => {
         if (closing) onClose()
       }}
-      className="relative m-4 w-[280px] bg-[#333333]/80 backdrop-blur-[4px] border border-white/10 rounded-[22px] shadow-[0_8px_32px_rgba(0,0,0,0.28)] overflow-hidden font-sans p-1"
+      className="relative overflow-x-hidden! m-4 w-[280px] bg-[#333333]/80 backdrop-blur-[4px] border border-white/10 rounded-[22px] shadow-[0_8px_32px_rgba(0,0,0,0.28)] overflow-hidden font-sans p-1"
     >
       <canvas
         ref={canvasRef}
@@ -176,6 +181,7 @@ export function Panel({
             userName={userName}
             showGear={viewKey === 'logged-out'}
             noCard={viewKey !== 'logged-out' && publishState === 'published'}
+            loading={viewKey === 'loading'}
           >
             {viewContent}
           </PanelLayout>

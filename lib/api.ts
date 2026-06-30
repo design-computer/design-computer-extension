@@ -92,34 +92,112 @@ export interface AssetItem {
   url: string
 }
 
-export async function getAssets(): Promise<AssetItem[]> {
-  const res = await fetch(`${WEB_URL}/api/assets`, {
+export interface AssetsPage {
+  assets: AssetItem[]
+  // Opaque keyset cursor for the next page, or null when there are no more.
+  nextCursor: string | null
+}
+
+export async function getAssets(params?: {
+  cursor?: string | null
+  limit?: number
+}): Promise<AssetsPage> {
+  const qs = new URLSearchParams()
+  if (params?.limit != null) qs.set('limit', String(params.limit))
+  if (params?.cursor) qs.set('cursor', params.cursor)
+  const query = qs.toString()
+  const res = await fetch(`${WEB_URL}/api/assets${query ? `?${query}` : ''}`, {
     credentials: 'include',
   })
-  if (!res.ok) return []
-  const data = (await res.json()) as { assets: AssetItem[] }
-  return data.assets || []
+  if (!res.ok) return { assets: [], nextCursor: null }
+  const data = (await res.json()) as AssetsPage
+  return { assets: data.assets || [], nextCursor: data.nextCursor ?? null }
 }
 
 export async function uploadAsset(
   filename: string,
   mimeType: string,
   dataBase64: string,
+  onProgress?: (loaded: number, total: number) => void,
 ): Promise<{ id: string; key: string; url: string }> {
   // Reconstruct the file from base64 (messaging is JSON-serialized)
   const binary = atob(dataBase64)
   const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-  const blob = new Blob([bytes], { type: mimeType })
 
-  const fd = new FormData()
-  fd.append('file', blob, filename)
+  // We need real upload progress, but the MV3 service worker has no
+  // XMLHttpRequest (no upload.onprogress). Instead we hand-build the multipart
+  // body and stream it through fetch, counting bytes as the network pulls each
+  // chunk. The server still sees a normal `multipart/form-data` request, so the
+  // upload route is unchanged. `duplex: 'half'` is required for a streamed body.
+  const boundary = `----dcUpload${crypto.randomUUID().replace(/-/g, '')}`
+  const enc = new TextEncoder()
+  // The filename is quoted; escape quotes/newlines so a crafted name can't break
+  // out of the header (defense in depth — names are already validated upstream).
+  const safeName = filename.replace(/["\r\n]/g, '_')
+  const head = enc.encode(
+    `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="file"; filename="${safeName}"\r\n` +
+      `Content-Type: ${mimeType}\r\n\r\n`,
+  )
+  const tail = enc.encode(`\r\n--${boundary}--\r\n`)
+  const total = head.length + bytes.length + tail.length
 
-  const res = await fetch(`${WEB_URL}/api/assets/upload`, {
-    method: 'POST',
-    credentials: 'include',
-    body: fd,
+  const CHUNK = 64 * 1024
+  let loaded = 0
+  let offset = 0
+  let phase: 'head' | 'body' | 'tail' | 'done' = 'head'
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (phase === 'head') {
+        controller.enqueue(head)
+        loaded += head.length
+        phase = 'body'
+      } else if (phase === 'body') {
+        if (offset < bytes.length) {
+          const end = Math.min(offset + CHUNK, bytes.length)
+          controller.enqueue(bytes.subarray(offset, end))
+          loaded += end - offset
+          offset = end
+        } else {
+          phase = 'tail'
+        }
+      } else if (phase === 'tail') {
+        controller.enqueue(tail)
+        loaded += tail.length
+        phase = 'done'
+      } else {
+        controller.close()
+        return
+      }
+      onProgress?.(loaded, total)
+    },
   })
+
+  let res: Response
+  try {
+    res = await fetch(`${WEB_URL}/api/assets/upload`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      body,
+      // @ts-expect-error duplex is required for streamed request bodies but is
+      // missing from the DOM RequestInit type in this TS version.
+      duplex: 'half',
+    })
+  } catch {
+    // Streamed request bodies need HTTP/2+ (and a fetch impl that supports
+    // them). If the connection can't take a stream (e.g. an HTTP/1.1 dev
+    // server), fall back to a plain multipart upload — no progress, but it
+    // works. A real server response (4xx/5xx) is handled below, not here.
+    const fd = new FormData()
+    fd.append('file', new Blob([bytes], { type: mimeType }), filename)
+    res = await fetch(`${WEB_URL}/api/assets/upload`, {
+      method: 'POST',
+      credentials: 'include',
+      body: fd,
+    })
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))

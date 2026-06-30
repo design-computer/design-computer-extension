@@ -143,8 +143,10 @@ const CONTENT_GAP = 8
 function Content({ children, className, style, ...rest }: HTMLMotionProps<'div'>) {
   const { open, triggerRef, contentRef, portalTarget } = useCategorySelect()
   // Fixed-position coords derived from the trigger's viewport rect. Right-anchored
-  // (like the old `right-0`) so the dropdown's right edge tracks the trigger's.
-  const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
+  // (like the old `right-0`) so the dropdown's right edge tracks the trigger's, and
+  // width matched to the trigger so it aligns like a normal <select> — a portaled,
+  // fixed-positioned element can't use `w-full` (that resolves to the viewport).
+  const [pos, setPos] = useState<{ top: number; right: number; width: number } | null>(null)
 
   useLayoutEffect(() => {
     if (!open) return
@@ -152,7 +154,7 @@ function Content({ children, className, style, ...rest }: HTMLMotionProps<'div'>
       const el = triggerRef.current
       if (!el) return
       const r = el.getBoundingClientRect()
-      setPos({ top: r.bottom + CONTENT_GAP, right: window.innerWidth - r.right })
+      setPos({ top: r.bottom + CONTENT_GAP, right: window.innerWidth - r.right, width: r.width })
     }
     update()
     window.addEventListener('resize', update)
@@ -180,11 +182,12 @@ function Content({ children, className, style, ...rest }: HTMLMotionProps<'div'>
             position: 'fixed',
             top: pos.top,
             right: pos.right,
+            width: pos.width,
             transformOrigin: 'top right',
             ...style,
           }}
           className={cn(
-            'z-[2147483647] min-w-[200px] p-1 bg-white rounded-[14px] border border-[#eee] shadow-[0_8px_24px_rgba(0,0,0,0.12)] max-h-[280px] overflow-y-auto',
+            'z-[2147483647] min-w-[200px] p-[6px] bg-white rounded-[14px] border border-[#eee] shadow-[0_8px_24px_rgba(0,0,0,0.12)] max-h-[280px] overflow-y-auto',
             className,
           )}
           {...rest}
@@ -217,7 +220,7 @@ function Item({
         close()
       }}
       className={cn(
-        'w-full flex items-center justify-between gap-[2px] px-[18px] py-[12px] rounded-[20px] cursor-pointer border-none text-[14px] leading-[18px] tracking-[-0.01em] transition-colors hover:bg-[#F8F8F8]',
+        'w-full flex items-center justify-between gap-[2px] px-[12px] py-[6px] rounded-[14px] cursor-pointer border-none text-[14px] leading-[18px] tracking-[-0.01em] transition-colors hover:bg-[#F8F8F8]',
         selected ? 'bg-[#F8F8F8]' : 'bg-transparent',
         className,
       )}

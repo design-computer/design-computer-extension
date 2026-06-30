@@ -139,7 +139,7 @@ function CoverImage({
 
   if (!url) {
     return (
-      <div className={`flex items-center justify-center bg-[#f4f4f4] ${className}`}>
+      <div className={`flex items-center justify-center bg-[#F6F6F6] ${className}`}>
         <ImageIcon width={20} height={20} strokeWidth={1.5} color="#ccc" />
       </div>
     )
@@ -147,7 +147,7 @@ function CoverImage({
 
   // Show a pulsing skeleton until the image decodes, then cross-fade it in.
   return (
-    <div className={`relative overflow-hidden bg-[#f4f4f4] ${className}`}>
+    <div className={`relative overflow-hidden bg-[#F6F6F6] ${className}`}>
       {!loaded && <div className="absolute inset-0 animate-pulse bg-[#ececec]" />}
       <img
         src={url}
@@ -223,6 +223,16 @@ function BookmarkCount({
   )
 }
 
+// Small on-brand badge marking a template the viewer owns. Brand yellow
+// (#F6C013, same as the Create button) on black so it reads as "ours".
+function OwnerBadge() {
+  return (
+    <span className="absolute top-[6px] left-[6px] z-[1] px-[6px] py-[2px] rounded-full bg-[#F6C013] text-black text-[10px] font-semibold leading-[12px] tracking-[-0.01em]">
+      Yours
+    </span>
+  )
+}
+
 function TemplateGridCard({
   template,
   onSelect,
@@ -237,45 +247,15 @@ function TemplateGridCard({
       onClick={onSelect}
       className="flex flex-col gap-[6px] text-left bg-transparent border-none cursor-pointer p-0"
     >
-      <CoverImage
-        url={template.coverThumbnailUrl ?? template.coverUrl}
-        name={template.name}
-        className="h-[91.5px] w-full rounded-[8px]"
-      />
-      <div className="flex items-center justify-between px-1">
-        <span className="flex-1 text-[12px] font-medium text-black tracking-[-0.01em] leading-[18px] truncate">
-          {template.name}
-        </span>
-        <BookmarkCount
-          count={template.bookmarkCount}
-          filled={template.isBookmarked}
-          onToggle={() => onToggleBookmark(template)}
+      <div className="relative w-full">
+        <CoverImage
+          url={template.coverThumbnailUrl ?? template.coverUrl}
+          name={template.name}
+          className="h-[91.5px] w-full rounded-[8px]"
         />
+        {template.isOwner && <OwnerBadge />}
       </div>
-    </button>
-  )
-}
-
-function TemplateSavedCard({
-  template,
-  onSelect,
-  onToggleBookmark,
-}: {
-  template: TemplateItem
-  onSelect: () => void
-  onToggleBookmark: (t: TemplateItem) => void
-}) {
-  return (
-    <button
-      onClick={onSelect}
-      className="flex flex-col gap-[6px] text-left bg-transparent border-none cursor-pointer p-0 w-full"
-    >
-      <CoverImage
-        url={template.coverThumbnailUrl ?? template.coverUrl}
-        name={template.name}
-        className="w-full aspect-[4/3] rounded-[8px]"
-      />
-      <div className="flex items-center justify-between p-[4px]">
+      <div className="flex items-center justify-between px-1">
         <span className="flex-1 text-[12px] font-medium text-black tracking-[-0.01em] leading-[18px] truncate">
           {template.name}
         </span>
@@ -315,7 +295,7 @@ function TemplateDetail({
       <div className="flex items-center gap-[6px]">
         <button
           onClick={onBack}
-          className="bg-[#F6F6F6] h-[26px] w-[26px] flex items-center justify-center rounded-lg border-none cursor-pointer shrink-0"
+          className="bg-[#F6F6F6] h-6.5 w-6.5 flex items-center justify-center rounded-lg border-none cursor-pointer shrink-0"
         >
           <ChevronLeftIcon />
         </button>
@@ -326,14 +306,14 @@ function TemplateDetail({
           onClick={() => onToggleBookmark(template)}
           aria-pressed={template.isBookmarked}
           aria-label={template.isBookmarked ? 'Remove bookmark' : 'Bookmark template'}
-          className="flex items-center gap-[2px] bg-transparent border-none cursor-pointer p-0 text-[12px] leading-[16px] tracking-[-0.01em] text-[#999] shrink-0"
+          className="flex items-center gap-[2px] bg-transparent border-none cursor-pointer p-0 px-1 text-[12px] leading-[16px] tracking-[-0.01em] text-[#999] shrink-0"
         >
           <CardBookmark filled={template.isBookmarked} /> {template.bookmarkCount}
         </button>
         {template.isOwner && (
           <button
             onClick={() => onEdit(template)}
-            className="py-1 px-2 bg-[#F6F6F6] rounded-lg border-none cursor-pointer text-[12px] font-medium text-[#333] tracking-[-0.01em] shrink-0"
+            className="py-1 px-2 bg-[#F6F6F6] rounded-lg border-none cursor-pointer text-sm font-medium text-[#333] tracking-[-0.01em] shrink-0"
           >
             Edit
           </button>
@@ -374,7 +354,7 @@ function TemplateDetail({
           </span>
           {template.creatorName ? (
             <span className="flex items-center gap-[4px] min-w-0">
-              <span className="w-[15px] h-[15px] rounded-full bg-[#f4f4f4] overflow-hidden shrink-0">
+              <span className="w-[15px] h-[15px] rounded-full bg-[#F6F6F6] overflow-hidden shrink-0">
                 {template.creatorAvatar && (
                   <img
                     src={template.creatorAvatar}
@@ -441,6 +421,10 @@ function SavedEmpty({ onCreate }: { onCreate: () => void }) {
 }
 
 const MAX_COVER_SIZE = 5 * 1024 * 1024 // 5MB — matches the web API
+
+// Auto-growing textareas (description, prompt) cap at 2 lines (20px line-height
+// × 2 + 24px py-3 padding), then scroll. Keep in sync with the leading/padding.
+const FIELD_MAX_HEIGHT = 2 * 20 + 24
 
 // Cover can be: the template's existing (remote) cover, a freshly picked file,
 // or none (cleared / never set). Only 'new' carries base64 bytes to upload;
@@ -529,8 +513,26 @@ function CreateForm({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const coverInputRef = useRef<HTMLInputElement>(null)
+  const descriptionRef = useRef<HTMLTextAreaElement>(null)
+  const promptRef = useRef<HTMLTextAreaElement>(null)
 
   const isValid = title.trim().length > 0 && prompt.trim().length > 0
+
+  // Auto-grow the description + prompt up to FIELD_MAX_HEIGHT (2 lines), then
+  // scroll. Runs on mount too, so an edited template's existing text sizes right.
+  useEffect(() => {
+    const el = descriptionRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, FIELD_MAX_HEIGHT)}px`
+  }, [description])
+
+  useEffect(() => {
+    const el = promptRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, FIELD_MAX_HEIGHT)}px`
+  }, [prompt])
 
   // Revoke the preview object URL on unmount — only 'new' covers own one.
   useEffect(() => {
@@ -619,11 +621,11 @@ function CreateForm({
         <button
           onClick={onBack}
           disabled={submitting}
-          className="w-7 h-7 flex items-center justify-center bg-[#f4f4f4] rounded-full border-none cursor-pointer text-[#333] shrink-0 disabled:opacity-40"
+          className="w-6.5 h-6.5 flex items-center justify-center bg-[#F6F6F6] rounded-lg border-none cursor-pointer text-[#333] shrink-0 disabled:opacity-40"
         >
           <ChevronLeftIcon />
         </button>
-        <span className="text-[14px] font-medium text-[#999] tracking-[-0.01em]">
+        <span className="text-[14px] font-medium text-[#999] tracking-[-0.01em] px-1.5">
           {isEditing ? 'Edit template' : 'Create template'}
         </span>
       </div>
@@ -633,20 +635,27 @@ function CreateForm({
         placeholder="Template title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="w-full bg-[#f4f4f4] rounded-[12px] px-3 py-3 text-[14px] font-medium text-black placeholder:text-[#ccc] border-none outline-none"
+        className="w-full bg-[#F6F6F6] rounded-[12px] px-3 py-3 text-[14px] font-medium text-black placeholder:text-[#ccc] border-none outline-none"
       />
 
       <div className="relative">
-        <input
-          type="text"
+        <textarea
+          ref={descriptionRef}
           placeholder="Short description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full bg-[#f4f4f4] rounded-[12px] px-3 py-3 pr-20 text-[14px] text-black placeholder:text-[#ccc] border-none outline-none"
+          rows={1}
+          style={{ maxHeight: FIELD_MAX_HEIGHT }}
+          className={`block w-full bg-[#F6F6F6] rounded-[12px] px-3 py-3 text-[14px] leading-[20px] text-black placeholder:text-[#ccc] border-none outline-none resize-none overflow-y-auto ${
+            description ? '' : 'pr-20'
+          }`}
         />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#ccc] pointer-events-none">
-          Optional
-        </span>
+        {/* Hide the hint once typing starts so the text spans the full width. */}
+        {!description && (
+          <span className="absolute right-3 top-3 text-[12px] leading-[20px] text-[#ccc] pointer-events-none">
+            Optional
+          </span>
+        )}
       </div>
 
       {/* Cover image: hidden file input + a styled trigger / chosen-file row. */}
@@ -658,7 +667,7 @@ function CreateForm({
         onChange={handleCoverChange}
       />
       {cover.kind !== 'none' ? (
-        <div className="w-full bg-[#f4f4f4] rounded-[12px] p-2 flex items-center gap-2">
+        <div className="w-full bg-[#F6F6F6] rounded-[12px] p-2 flex items-center gap-2">
           <img
             src={cover.previewUrl}
             alt=""
@@ -684,7 +693,7 @@ function CreateForm({
       ) : (
         <button
           onClick={() => coverInputRef.current?.click()}
-          className="w-full bg-[#f4f4f4] rounded-[12px] px-3 py-3 flex items-center gap-2 border-none cursor-pointer text-left"
+          className="w-full bg-[#F6F6F6] rounded-[12px] px-3 py-3 flex items-center gap-2 border-none cursor-pointer text-left"
         >
           <span className="text-[#ccc] text-[20px] font-light leading-none">+</span>
           <span className="flex-1 text-[14px] font-medium text-black">Cover image</span>
@@ -693,15 +702,17 @@ function CreateForm({
       )}
 
       <textarea
+        ref={promptRef}
         placeholder="Your prompt"
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        rows={5}
-        className="w-full bg-[#f4f4f4] rounded-[12px] px-3 py-3 text-[14px] text-black placeholder:text-[#ccc] border-none outline-none resize-none"
+        rows={1}
+        style={{ maxHeight: FIELD_MAX_HEIGHT }}
+        className="block w-full bg-[#F6F6F6] rounded-[12px] px-3 py-3 text-[14px] leading-[20px] text-black placeholder:text-[#ccc] border-none outline-none resize-none overflow-y-auto"
       />
 
       <CategorySelect className="w-full ml-0">
-        <CategorySelect.Trigger className="w-full justify-between bg-[#f4f4f4] rounded-[12px] px-3 py-3 text-[14px]">
+        <CategorySelect.Trigger className="w-full justify-between bg-[#F6F6F6] rounded-[12px] px-3 py-3 text-[14px]">
           <span className={category ? 'text-black font-medium' : 'text-[#ccc]'}>
             {category ?? 'Category'}
           </span>
@@ -715,7 +726,7 @@ function CreateForm({
         </CategorySelect.Content>
       </CategorySelect>
 
-      <div className="bg-[#f4f4f4] rounded-[12px] px-3 py-3 flex items-center">
+      <div className="bg-[#F6F6F6] rounded-[12px] px-3 py-3 flex items-center">
         <span className="flex-1 text-[14px] font-medium text-black">Public template</span>
         <button
           onClick={() => setIsPublic((v) => !v)}
@@ -947,17 +958,21 @@ export function TemplatesSection({ isOpen, onToggle }: { isOpen: boolean; onTogg
                         ) : (
                           <div className="flex flex-col gap-3">
                             <div className="flex items-center justify-between">
-                              <span className="text-[13px] font-medium text-black">Saved</span>
+                              <span className="text-[14px] font-medium text-black">Saved</span>
                               <button
                                 onClick={openCreate}
-                                className="h-8 px-3 flex items-center gap-1 bg-[#E8B84B] rounded-full border-none cursor-pointer text-[13px] font-medium text-black"
+                                className="py-[4px] px-[8px] flex items-center gap-[4px] bg-[#F6C013] rounded-lg border-none cursor-pointer text-[14px] font-medium leading-[18px] tracking-[-0.01em] text-black"
                               >
-                                + Create
+                                <span className="flex items-center justify-center shrink-0">
+                                  <Plus width={15} height={15} strokeWidth={2.5} />
+                                </span>
+                                Create
                               </button>
                             </div>
-                            <div className="flex flex-col gap-3">
+                            {/* Same 2-column grid + card as Featured. */}
+                            <div className="grid grid-cols-2 gap-2">
                               {savedTemplates.map((t) => (
-                                <TemplateSavedCard
+                                <TemplateGridCard
                                   key={t.id}
                                   template={t}
                                   onSelect={() => openDetail(t)}

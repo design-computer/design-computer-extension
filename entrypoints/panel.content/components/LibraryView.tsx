@@ -121,8 +121,8 @@ export function LibraryView() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    sendMessage('getAssets', undefined)
-      .then(setAssets)
+    sendMessage('getAssets', {})
+      .then((page) => setAssets(page.assets))
       .catch(() => {})
   }, [])
 
@@ -158,8 +158,8 @@ export function LibraryView() {
           })
         }),
       )
-      const updated = await sendMessage('getAssets', undefined)
-      setAssets(updated)
+      const updated = await sendMessage('getAssets', {})
+      setAssets(updated.assets)
     } finally {
       setUploading(false)
       if (inputRef.current) inputRef.current.value = ''

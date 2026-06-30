@@ -127,10 +127,21 @@ export default defineBackground(() => {
   onMessage('checkSlug', async ({ data }) => checkSlug(data.slug))
   onMessage('getProjects', async () => getProjects())
   onMessage('getDomains', async () => getDomains())
-  onMessage('getAssets', async () => getAssets())
-  onMessage('uploadAsset', async ({ data }) =>
-    uploadAsset(data.filename, data.mimeType, data.dataBase64),
-  )
+  onMessage('getAssets', async ({ data }) => getAssets(data))
+  onMessage('uploadAsset', async ({ data, sender }) => {
+    const tabId = sender.tab?.id
+    // Stream real upload progress back to the originating tab's panel. Best
+    // effort — if the tab is gone the emit just fails and is ignored.
+    const onProgress =
+      tabId != null && data.uploadId
+        ? (loaded: number, total: number) => {
+            sendMessage('uploadProgress', { uploadId: data.uploadId!, loaded, total }, tabId).catch(
+              () => {},
+            )
+          }
+        : undefined
+    return uploadAsset(data.filename, data.mimeType, data.dataBase64, onProgress)
+  })
   onMessage('getTemplates', async () => getTemplates())
   onMessage('createTemplate', async ({ data }) => createTemplate(data))
   onMessage('updateTemplate', async ({ data }) => updateTemplate(data))
